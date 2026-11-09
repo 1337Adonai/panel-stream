@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Del celu al vivo · Planificador de streaming</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f5f5ed;
+      --ink: #181c17;
+      --muted: #51584d;
+      --line: #d4d8cb;
+      --lime: #dbfa75;
+      --deep: #232b21;
+      font: 16px/1.45 system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); }
+    .wrap { width: min(1120px, calc(100% - 64px)); margin-inline: auto; }
+    .mono { font: 650 .73rem/1.35 ui-monospace, Consolas, monospace; letter-spacing: .085em; text-transform: uppercase; }
+    header .wrap { min-height: 65px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .brand { display: flex; align-items: center; gap: 9px; }
+    .brand-mark { width: 13px; height: 13px; background: #58772b; border-radius: 50%; box-shadow: inset 0 0 0 3px #d4e3b7; }
+    .version { color: var(--muted); text-align: right; }
+    main { padding-block: 38px 24px; }
+    .intro { display: flex; align-items: end; justify-content: space-between; gap: 20px 32px; margin-bottom: 27px; flex-wrap: wrap; }
+    .intro p { margin: 0; max-width: 31ch; color: var(--muted); }
+    .kicker { color: #4a651f; margin-bottom: 6px; }
+    h1 { font-size: clamp(2.6rem, 7vw, 5rem); line-height: .98; letter-spacing: -.075em; margin: 0; font-weight: 780; }
+    h2 { font-size: 1.4rem; line-height: 1.15; letter-spacing: -.035em; margin: 0; }
+    .layout { display: grid; grid-template-columns: minmax(0, 1.38fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
+    .result, .settings { border-radius: 18px; padding: clamp(17px, 2.8vw, 28px); }
+    .result { background: var(--deep); color: #f8faf1; display: flex; flex-direction: column; }
+    .result .eyebrow { color: #c8d4bf; }
+    .flow { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 7px; margin-block: 14px 21px; }
+    .node { align-self: stretch; min-width: 0; padding: 11px 3px 9px; text-align: center; background: #343f31; border: 1px solid #4d5c46; border-radius: 11px; }
+    .node svg { display: block; margin: 0 auto 5px; color: var(--lime); width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 1.65; stroke-linecap: round; stroke-linejoin: round; }
+    .node strong, .node small { display: block; }
+    .node small { color: #d0dac9; font-size: .72rem; }
+    .arrow { color: var(--lime); font-size: 1.15rem; }
+    .estimate { border-top: 1px solid #515d4c; border-bottom: 1px solid #515d4c; padding-block: 17px; }
+    .metric { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 9px; margin: 3px 0; }
+    .metric strong { font-size: clamp(3rem, 7.2vw, 5.1rem); font-weight: 770; line-height: 1; letter-spacing: -.065em; color: var(--lime); font-variant-numeric: tabular-nums; }
+    .metric span { color: var(--lime); font-size: 1.36rem; font-weight: 700; }
+    .estimate p { color: #d0dac9; font-size: .86rem; margin: 7px 0 0; }
+    .breakdown { display: grid; gap: 11px; margin-block: 17px 14px; }
+    .breakdown-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 8px; font-size: .8rem; }
+    .breakdown-row strong { font-variant-numeric: tabular-nums; }
+    .track { grid-column: 1 / -1; height: 5px; border-radius: 9px; background: #455141; overflow: hidden; }
+    .track span { display: block; width: 0; height: 100%; border-radius: inherit; background: var(--lime); transition: width .2s ease-out; }
+    .breakdown-row:last-child .track span { background: #a9c3a2; }
+    .result-note { font-size: .84rem; color: #d0dac9; margin: auto 0 0; }
+    .settings { background: #fff; border: 1px solid var(--line); }
+    .settings h2 { margin-bottom: 12px; }
+    fieldset { min-width: 0; padding: 0; margin: 0 0 13px; border: 0; }
+    legend, .duration label { font-size: .88rem; font-weight: 750; padding: 0; margin-bottom: 6px; }
+    .choices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+    .choice { position: relative; display: flex; min-height: 56px; flex-direction: column; justify-content: center; padding: 6px 7px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+    .choice input { position: absolute; opacity: 0; margin: 0; }
+    .choice:has(input:checked) { background: #eef8d7; border-color: #5f7b35; box-shadow: inset 0 0 0 1px #5f7b35; }
+    .choice:has(input:focus-visible), button:focus-visible, a:focus-visible, summary:focus-visible { outline: 3px solid #567c21; outline-offset: 3px; }
+    .choice strong { font-size: .78rem; line-height: 1.2; }
+    .choice small { margin-top: 3px; font-size: .7rem; line-height: 1.2; color: var(--muted); }
+    .help { font-size: .77rem; color: var(--muted); margin: 5px 0 0; }
+    .duration-heading { display: flex; justify-content: space-between; gap: 6px; align-items: baseline; }
+    .duration output { font-weight: 750; font-size: .88rem; }
+    .duration input { width: 100%; accent-color: #52702b; margin: 0; min-height: 34px; }
+    .copy-row { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; margin-top: 10px; }
+    button { border: 0; background: var(--lime); color: var(--ink); border-radius: 8px; padding: 9px 13px; min-height: 43px; font: 750 .86rem/1.25 system-ui, sans-serif; cursor: pointer; }
+    button:hover { background: #cceb62; }
+    #copy-status { font-size: .77rem; color: var(--muted); }
+    #plan { width: 100%; resize: vertical; margin-top: 10px; min-height: 132px; padding: 9px; font: inherit; }
+    .scope { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 26px; padding: 20px 0 15px; }
+    .scope h2 { font-size: 1rem; }
+    .scope p { font-size: .85rem; color: var(--muted); margin: 4px 0 0; }
+    details { border-top: 1px solid var(--line); padding: 12px 0; color: var(--muted); font-size: .82rem; }
+    summary { cursor: pointer; color: var(--ink); font-weight: 700; }
+    details p { margin: 8px 0 0; max-width: 92ch; }
+    a { color: #3d5c1c; text-underline-offset: 2px; }
+    .architecture { margin-top: 26px; padding-top: 24px; border-top: 1px solid var(--line); scroll-margin-top: 18px; }
+    .architecture h2 { font-size: clamp(1.7rem, 4vw, 2.6rem); margin: 5px 0 9px; }
+    .architecture .lead { margin: 0 0 18px; max-width: 66ch; color: var(--muted); }
+    .architecture-grid { display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr); gap: 16px; }
+    .architecture h3 { font-size: 1rem; margin: 0 0 7px; }
+    .route-options { margin-bottom: 0; }
+    .route-options legend { margin-bottom: 8px; }
+    .route-options .choice { border-color: #647361; min-height: 62px; }
+    .route-options .choice small { color: #d0dac9; }
+    .route-options .choice:has(input:checked) { background: var(--lime); color: var(--ink); }
+    .route-options .choice:has(input:checked) small { color: var(--deep); }
+    .route-options .choice:has(input:focus-visible) { outline-color: var(--lime); }
+    .route-graphic { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) minmax(0, 1fr); gap: 6px; align-items: center; margin: 16px 0 9px; }
+    .route-graphic .node { display: grid; align-content: center; }
+    .route-graphic .node strong { font-size: .9rem; }
+    .route-link { display: grid; align-items: center; text-align: center; gap: 2px; color: var(--lime); }
+    .route-link small { font-size: .73rem; }
+    .route-link .arrow { line-height: 1; }
+    .route-link.relay { background: #415038; border-radius: 8px; padding: 6px 2px; }
+    .route-link.relay strong::before { content: '→ '; }
+    .route-link.relay strong::after { content: ' →'; }
+    .route-link.relay .arrow { display: none; }
+    .route-caption { min-height: 3.8em; color: #e4ecdc; margin: 0 0 13px; font-size: .84rem; }
+    .route-footer { padding-top: 10px; border-top: 1px solid #515d4c; }
+    .architecture-guide ol { padding-left: 21px; margin: 9px 0 16px; }
+    .architecture-guide li { margin-bottom: 6px; }
+    .architecture-guide p, .architecture-guide li { font-size: .88rem; }
+    .architecture-guide p { margin: 0; color: var(--muted); }
+    .architecture-guide a { display: inline-block; margin-top: 10px; font-size: .85rem; }
+    .architecture details { margin-top: 14px; }
+    @media (max-width: 800px) {
+      .wrap { width: min(640px, calc(100% - 32px)); }
+      main { padding-top: 25px; }
+      .intro { margin-bottom: 20px; gap: 11px; }
+      .intro p { max-width: 52ch; }
+      .layout, .architecture-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 420px) {
+      .scope { grid-template-columns: 1fr; }
+      .flow { gap: 4px; }
+      .node small { font-size: .67rem; }
+      .choice strong { overflow-wrap: anywhere; }
+    }
+    @media (prefers-reduced-motion: reduce) { .track span { transition: none; } }
+  </style>
+</head>
+<body>
+  <header><div class="wrap">
+    <div class="brand mono"><span class="brand-mark" aria-hidden="true"></span> Taller de streaming</div>
+    <a class="version mono" href="#arquitectura">Ver arquitectura ↓</a>
+  </div></header>
+  <main class="wrap">
+    <div class="intro">
+      <div><div class="kicker mono">Celular + OBS + Kick</div><h1>Del celu al vivo.</h1></div>
+      <p>Probá cómo mandar cámara y micrófono a OBS y cuánto gastarías en datos.</p>
+    </div>
+    <div class="layout">
+      <section class="result" aria-labelledby="route-heading">
+        <div id="route-heading" class="eyebrow mono">Recorrido de la señal</div>
+        <div class="flow" aria-label="El celular manda imagen y audio a OBS. OBS emite a Kick.">
+          <div class="node">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M10 18h4"/></svg>
+            <strong>Celular</strong><small id="phone-label">Datos móviles</small>
+          </div>
+          <span class="arrow" aria-hidden="true">→</span>
+          <div class="node">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M12 17v4m-4 0h8"/></svg>
+            <strong>OBS</strong><small id="obs-label">Internet propio</small>
+          </div>
+          <span class="arrow" aria-hidden="true">→</span>
+          <div class="node">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="m10 8 6 4-6 4z"/></svg>
+            <strong>Kick</strong><small>Recibe el vivo</small>
+          </div>
+        </div>
+        <div class="estimate" aria-live="polite">
+          <div class="eyebrow mono">Datos de tu plan móvil · estimación</div>
+          <div class="metric"><strong id="mobile-total">247</strong><span id="mobile-unit">MB</span></div>
+          <p id="estimate-label">En 1 h · 247 MB/h</p>
+        </div>
+        <div class="breakdown">
+          <div class="breakdown-row">
+            <span>Celular → OBS</span><strong id="phone-total">247 MB</strong>
+            <div class="track" aria-hidden="true"><span id="phone-bar"></span></div>
+          </div>
+          <div class="breakdown-row">
+            <span>OBS → Kick</span><strong id="obs-total">0 MB</strong>
+            <div class="track" aria-hidden="true"><span id="obs-bar"></span></div>
+          </div>
+        </div>
+        <p class="result-note" id="network-note">Solo la señal del celular a OBS usa tu plan móvil.</p>
+      </section>
+      <form class="settings" aria-labelledby="options-heading">
+        <h2 id="options-heading">Armá tu escenario</h2>
+        <fieldset aria-describedby="network-help">
+          <legend>¿Cómo se conectan?</legend>
+          <div class="choices">
+            <label class="choice"><input type="radio" name="network" value="wifi"><strong>Wi-Fi</strong><small>Celular y PC en casa</small></label>
+            <label class="choice"><input type="radio" name="network" value="mobile" checked><strong>Datos móviles</strong><small>PC con su internet</small></label>
+            <label class="choice"><input type="radio" name="network" value="hotspot"><strong>Compartir datos</strong><small>La PC usa el celu</small></label>
+          </div>
+          <p class="help" id="network-help">El celu puede estar afuera mientras la PC queda conectada en casa.</p>
+        </fieldset>
+        <fieldset aria-describedby="profile-help">
+          <legend>¿Qué calidad querés mandar a OBS?</legend>
+          <div class="choices">
+            <label class="choice"><input type="radio" name="profile" value="saving" checked><strong>Ahorro</strong><small>360p · 20 fps</small></label>
+            <label class="choice"><input type="radio" name="profile" value="balanced"><strong>Equilibrado</strong><small>480p · 24 fps</small></label>
+            <label class="choice"><input type="radio" name="profile" value="quality"><strong>Calidad</strong><small>720p · 30 fps</small></label>
+          </div>
+          <p class="help" id="profile-help">Para una cara en un recuadro o una charla con poco movimiento.</p>
+        </fieldset>
+        <div class="duration">
+          <div class="duration-heading">
+            <label for="duration">¿Cuánto duraría el vivo?</label><output id="duration-value" for="duration">1 h</output>
+          </div>
+          <input type="range" id="duration" min="15" max="240" step="15" value="60" aria-valuetext="1 h">
+        </div>
+        <div class="copy-row">
+          <button type="button" id="copy">Copiar mi escenario</button><span id="copy-status" role="status"></span>
+        </div>
+        <textarea id="plan" aria-label="Resumen del escenario" readonly hidden></textarea>
+      </form>
+    </div>
+    <section class="scope" aria-label="Cámaras y chat">
+      <div><h2>Cámaras</h2><p>Un toque para pasar de frontal a trasera. Usar las dos juntas quedaría para celulares compatibles.</p></div>
+      <div><h2>Chat</h2><p>Leés los mensajes junto a la vista previa en el celu. En OBS, podés sumar tu URL como overlay si querés mostrarle el chat al público.</p></div>
+    </section>
+    <details>
+      <summary>Cómo se calcula y qué simula esta página</summary>
+      <p>Perfiles de prueba con video a 500, 900 o 1.500 kbps y audio a 48 kbps. Para la salida de OBS se usa como ejemplo un total de 4.000 kbps. Un flujo sostenido de 1 Mbps equivale a 450 MB por hora. Se muestran MB decimales de audio y video. El tráfico del chat, los reenvíos y la sobrecarga de red pueden cambiar el consumo real.</p>
+      <p>Podés probar las opciones sin conexión. La captura de cámara, la conexión a OBS y el chat se implementarían en la herramienta de streaming.</p>
+      <p><a href="https://docs.vdo.ninja/guides/video-bitrate-for-push-view-links" target="_blank" rel="noopener noreferrer">Bitrate en VDO.Ninja</a> · <a href="https://help.kick.com/en/articles/7066931-how-to-stream-on-kick-com" target="_blank" rel="noopener noreferrer">Configuración de OBS para Kick</a></p>
+    </details>
+    <section id="arquitectura" class="architecture" aria-labelledby="architecture-heading">
+      <div class="kicker mono">02 / Arquitectura</div>
+      <h2 id="architecture-heading">¿Por dónde viaja la señal?</h2>
+      <p class="lead">Tu PC recibe la cámara en OBS y arma el vivo. Para la primera prueba alcanza con los enlaces de VDO.Ninja y una fuente en OBS.</p>
+      <div class="architecture-grid">
+        <section class="result" aria-labelledby="route-options-label">
+          <fieldset id="route-options" class="route-options">
+            <legend id="route-options-label">Probá tres recorridos posibles</legend>
+            <div class="choices">
+              <label class="choice"><input type="radio" name="path" value="home"><strong>En casa</strong><small>Mismo Wi‑Fi</small></label>
+              <label class="choice"><input type="radio" name="path" value="remote" checked><strong>Desde afuera</strong><small>Conexión directa</small></label>
+              <label class="choice"><input type="radio" name="path" value="relay"><strong>Con puente</strong><small>Si falla la ruta directa</small></label>
+            </div>
+          </fieldset>
+          <div class="route-graphic" aria-live="polite">
+            <div class="node"><strong>Celular</strong><small id="architecture-phone">4G / 5G</small></div>
+            <div id="architecture-link" class="route-link">
+              <strong id="architecture-path">Directo</strong>
+              <small id="architecture-path-note">Por internet</small>
+              <span class="arrow" aria-hidden="true">⟶</span>
+            </div>
+            <div class="node"><strong>OBS</strong><small>Recibe la señal</small></div>
+          </div>
+          <p class="route-caption" id="architecture-caption">El celular usa datos para enviar imagen y audio. La PC recibe por su propia conexión.</p>
+          <p class="result-note route-footer">OBS mezcla cámara, audio y overlays. De ahí sale la emisión a Kick.</p>
+        </section>
+        <section class="settings architecture-guide" aria-labelledby="obs-setup-heading">
+          <h3 id="obs-setup-heading">Cómo entra la cámara a OBS</h3>
+          <ol>
+            <li>En el celu, abrí VDO.Ninja y compartí cámara y micrófono.</li>
+            <li>Copiá el enlace de recepción (<code>view</code>). En OBS, pegalo en <strong>Fuentes → + → Navegador</strong>.</li>
+            <li>Activá <strong>Controlar audio mediante OBS</strong>. Confirmá imagen y audio en la vista previa.</li>
+          </ol>
+          <p>La fuente funciona como un navegador dentro de OBS. Al cargar el enlace, se conecta con el celular y muestra la señal en tu escena.</p>
+          <a href="https://docs.vdo.ninja/getting-started/mobile-phone-camera-into-webcam" target="_blank" rel="noopener noreferrer">Ver la guía de conexión de VDO.Ninja ↗</a>
+          <br><a href="index.html">Probar el panel de cámara y chat →</a>
+        </section>
+      </div>
+      <details open>
+        <summary>¿Qué infraestructura hace falta?</summary>
+        <p><strong>Para probar.</strong> La PC puede recibir con la fuente de navegador de OBS. VDO.Ninja aporta la <strong>señalización</strong> para que se encuentren los dos equipos y un <strong>relay TURN</strong> que reenvía audio y video si la conexión directa falla. Podés empezar con la infraestructura que ya ofrece el servicio.</p>
+        <p><strong>Para compartir la herramienta.</strong> Una página HTTPS puede ofrecer cámara, chat y emparejamiento con OBS. El alojamiento de esa página es una cosa y el puente de video es otra. Podés alojar tu interfaz y seguir usando VDO.Ninja para el transporte.</p>
+        <p><strong>Para operar el transporte por tu cuenta.</strong> Ahí entran la señalización, STUN para descubrir rutas directas y un relay TURN propio o contratado. El costo de tráfico se concentra en las sesiones que pasan por el relay. Para dimensionarlo conviene medir cuántos vivos lo usan, a qué calidad y durante cuánto tiempo.</p>
+        <p><a href="https://docs.vdo.ninja/readme/how-does-it-work" target="_blank" rel="noopener noreferrer">Cómo funciona WebRTC en VDO.Ninja</a> · <a href="https://docs.vdo.ninja/common-errors-and-known-issues/works-on-wifi-but-not-on-4g" target="_blank" rel="noopener noreferrer">Cuándo interviene TURN</a></p>
+      </details>
+    </section>
+    <noscript>Activá JavaScript en el navegador para usar el simulador.</noscript>
+  </main>
+  <script>
+    const profiles = {
+      saving: { name: 'Ahorro', videoKbps: 500, help: 'Para una cara en un recuadro o una charla con poco movimiento.' },
+      balanced: { name: 'Equilibrado', videoKbps: 900, help: 'Un punto medio para darle más espacio a la cámara en la escena.' },
+      quality: { name: 'Calidad', videoKbps: 1500, help: 'Más detalle para mostrar la calle o usar la cámara a pantalla completa.' }
+    };
+    const networks = {
+      wifi: {
+        name: 'Wi-Fi en casa', phoneLabel: 'Wi-Fi', obsLabel: 'Internet de casa',
+        phoneUsesData: false, obsUsesData: false,
+        help: 'El celular y la PC usan la conexión de casa.',
+        note: 'Los dos tramos pasan por la conexión de casa. El cálculo supone que el celu sigue en Wi-Fi.'
+      },
+      mobile: {
+        name: 'Datos móviles, PC con internet propio', phoneLabel: 'Datos móviles', obsLabel: 'Internet propio',
+        phoneUsesData: true, obsUsesData: false,
+        help: 'El celu puede estar afuera mientras la PC queda conectada en casa.',
+        note: 'Solo la señal del celular a OBS usa tu plan móvil.'
+      },
+      hotspot: {
+        name: 'La PC usa los datos compartidos del celular', phoneLabel: 'Comparte datos', obsLabel: 'Usa el hotspot',
+        phoneUsesData: false, obsUsesData: true,
+        help: 'El celu y la PC comparten red. OBS usa los datos del celu para emitir a Kick.',
+        note: 'El cálculo supone que la señal celular → OBS se queda en la red del hotspot. Si viaja por un relay externo, también puede consumir datos.'
+      }
+    };
+    const get = (id) => document.getElementById(id);
+    const form = document.querySelector('.settings');
+    const duration = get('duration');
+    const plan = get('plan');
+    const obsKbps = 4000;
+    const audioKbps = 48;
+    const number = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 1 });
+    const mb = (kbps, minutes) => kbps * minutes * 60 / 8000;
+    const formatMB = (amount) => amount >= 1000 ? number.format(amount / 1000) + ' GB' : Math.round(amount) + ' MB';
+
+    function formatDuration(minutes) {
+      const hours = Math.floor(minutes / 60);
+      const remaining = minutes % 60;
+      return [hours ? hours + ' h' : '', remaining ? remaining + ' min' : ''].filter(Boolean).join(' ');
+    }
+
+    function render() {
+      const network = networks[form.elements.network.value];
+      const profile = profiles[form.elements.profile.value];
+      const minutes = Number(duration.value);
+      const time = formatDuration(minutes);
+      const phoneKbps = network.phoneUsesData ? profile.videoKbps + audioKbps : 0;
+      const broadcastKbps = network.obsUsesData ? obsKbps : 0;
+      const totalKbps = phoneKbps + broadcastKbps;
+      const estimate = formatMB(mb(totalKbps, minutes));
+      const [value, unit] = estimate.split(' ');
+      const rate = formatMB(mb(totalKbps, 60)) + '/h';
+
+      get('phone-label').textContent = network.phoneLabel;
+      get('obs-label').textContent = network.obsLabel;
+      get('mobile-total').textContent = value;
+      get('mobile-unit').textContent = unit;
+      get('estimate-label').textContent = 'En ' + time + ' · ' + rate;
+      get('phone-total').textContent = formatMB(mb(phoneKbps, minutes));
+      get('obs-total').textContent = formatMB(mb(broadcastKbps, minutes));
+      get('phone-bar').style.width = (phoneKbps / obsKbps * 100) + '%';
+      get('obs-bar').style.width = (broadcastKbps / obsKbps * 100) + '%';
+      get('network-note').textContent = network.note;
+      get('network-help').textContent = network.help;
+      get('profile-help').textContent = profile.help;
+      get('duration-value').textContent = time;
+      duration.setAttribute('aria-valuetext', time);
+      plan.value = [
+        'Mi escenario de streaming',
+        network.name,
+        profile.name + ' · video a ' + profile.videoKbps + ' kbps del celular a OBS',
+        'Duración ' + time + ' · consumo móvil estimado ' + estimate + ' (' + rate + ')',
+        network.note
+      ].join('\n');
+      get('copy-status').textContent = '';
+    }
+
+    form.addEventListener('input', render);
+    form.addEventListener('submit', (event) => event.preventDefault());
+    get('copy').addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(plan.value);
+        get('copy-status').textContent = 'Escenario copiado.';
+      } catch {
+        plan.hidden = false;
+        plan.focus();
+        plan.select();
+        get('copy-status').textContent = 'Seleccionado para copiar.';
+      }
+    });
+    render();
+
+    const architectureRoutes = {
+      home: {
+        phone: 'Wi‑Fi de casa', path: 'Directo', note: 'Red local',
+        caption: 'Si se conectan directo por Wi‑Fi, el audio y el video quedan en la red de casa. Internet ayuda a coordinar la conexión.'
+      },
+      remote: {
+        phone: '4G / 5G', path: 'Directo', note: 'Por internet',
+        caption: 'El celular usa datos para enviar imagen y audio. La PC recibe por su propia conexión.'
+      },
+      relay: {
+        phone: '4G / 5G', path: 'TURN', note: 'Reenvía la señal',
+        caption: 'Si la red impide la conexión directa, el celu envía la señal a un puente en internet y OBS la recibe desde ahí.'
+      }
+    };
+    get('route-options').addEventListener('change', (event) => {
+      const key = event.target.value;
+      const route = architectureRoutes[key];
+      get('architecture-phone').textContent = route.phone;
+      get('architecture-path').textContent = route.path;
+      get('architecture-path-note').textContent = route.note;
+      get('architecture-caption').textContent = route.caption;
+      get('architecture-link').classList.toggle('relay', key === 'relay');
+    });
+  </script>
+</body>
+</html>
