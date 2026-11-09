@@ -30,6 +30,11 @@
     .notice { background: var(--panel); padding: 7px 10px; border-radius: 8px; margin-bottom: 6px; }
     .workspace { display: grid; gap: 6px; align-items: start; }
     .panel { min-width: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); overflow: hidden; }
+    .camera { position: relative; }
+    .fullscreen-control { position: absolute; top: 6px; right: 6px; z-index: 1; text-align: right; }
+    #fullscreen-toggle { display: inline-grid; place-items: center; width: 44px; padding: 0; background: #181c19; }
+    #fullscreen-toggle svg { width: 20px; height: 20px; }
+    #fullscreen-feedback:not(:empty) { margin-top: 4px; padding: 4px 7px; border-radius: 6px; background: var(--panel); }
     .stage { position: relative; display: grid; min-width: 0; background: var(--well); }
     .camera .stage { height: clamp(182px, 32svh, 330px); }
     #camera-frame-slot { min-width: 0; min-height: 0; }
@@ -116,6 +121,15 @@
       <p id="local-notice" class="help notice" hidden>Abrí el panel por HTTPS para usar la cámara.</p>
       <div class="workspace">
         <section class="panel camera" aria-label="Cámara">
+          <div class="fullscreen-control" id="fullscreen-control" hidden>
+            <button id="fullscreen-toggle" class="secondary" type="button" aria-label="Pantalla completa" title="Pantalla completa">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path id="fullscreen-enter" d="M9 4H4v5m11-5h5v5M4 15v5h5m11-5v5h-5"/>
+                <path id="fullscreen-exit" d="M4 9h5V4m11 5h-5V4M9 20v-5H4m11 5v-5h5" style="display:none"/>
+              </svg>
+            </button>
+            <p id="fullscreen-feedback" class="help" role="status"></p>
+          </div>
           <div id="camera-actions" hidden>
             <button type="button" class="secondary" data-facing="user" aria-pressed="false" disabled>Frontal</button>
             <button type="button" class="secondary" data-facing="environment" aria-pressed="false" disabled>Trasera</button>
@@ -196,6 +210,32 @@
 
     function showLandscapePanel() {
       if (landscapePanel.matches) window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+
+    if (document.fullscreenEnabled) {
+      const fullscreenButton = get('fullscreen-toggle');
+      const fullscreenFeedback = get('fullscreen-feedback');
+      get('fullscreen-control').hidden = false;
+
+      document.addEventListener('fullscreenchange', () => {
+        const active = Boolean(document.fullscreenElement);
+        const label = active ? 'Salir de pantalla completa' : 'Pantalla completa';
+        fullscreenButton.setAttribute('aria-label', label);
+        fullscreenButton.title = label;
+        get('fullscreen-enter').style.display = active ? 'none' : '';
+        get('fullscreen-exit').style.display = active ? '' : 'none';
+        fullscreenFeedback.textContent = '';
+      });
+
+      fullscreenButton.addEventListener('click', async () => {
+        try {
+          if (document.fullscreenElement) await document.exitFullscreen();
+          else await document.documentElement.requestFullscreen();
+          showLandscapePanel();
+        } catch {
+          fullscreenFeedback.textContent = 'El navegador bloqueó la pantalla completa.';
+        }
+      });
     }
 
     const vdoOrigin = 'https://vdo.ninja';
