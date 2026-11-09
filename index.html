@@ -137,12 +137,12 @@
           </div>
           <div class="panel-foot">
             <form id="chat-form">
-              <label for="chat-url">Tu enlace al chat</label>
+              <label for="chat-channel">Canal de Kick</label>
               <div class="url-row">
-                <input id="chat-url" type="url" placeholder="https://…" required autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="chat-feedback">
+                <input id="chat-channel" type="text" placeholder="Ej. example" required autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="chat-feedback">
                 <button type="submit" class="secondary">Cargar chat</button>
               </div>
-              <p class="help" id="chat-feedback" role="status">Usá la URL HTTPS de tu overlay. El proveedor tiene que permitir que se incruste.</p>
+              <p class="help" id="chat-feedback" role="status">Escribí el nombre del canal para abrir su chat.</p>
             </form>
           </div>
         </section>
@@ -230,27 +230,52 @@
       get('start-camera').focus();
     });
 
+    const chatUrl = new URL('https://yuuzito.github.io/Holy-chat-overlay/');
+    chatUrl.search = new URLSearchParams({
+      channel: 'example',
+      sevenTVCosmeticsEnabled: 'true',
+      sevenTVEmotesEnabled: 'true',
+      theme: 'transparent',
+      layout: 'vertical',
+      shadow: '0',
+      msgShadow: '1',
+      textSize: 'large',
+      size: '40',
+      emoteSize: '60',
+      badgeSize: '40',
+      font: 'inter',
+      fontWeight: '700',
+      animation: 'none',
+      showPinEnabled: 'false',
+      textBackgroundEnabled: 'false',
+      textBackgroundWidth: 'min',
+      mentionHighlightEnabled: 'false',
+      hideBots: 'false',
+      hideCommands: 'false',
+      deletedMessages: 'hide',
+      fade: '20',
+      donations: 'true',
+      rewards: 'false',
+      overlay: 'true'
+    }).toString();
+
     get('chat-form').addEventListener('submit', (event) => {
       event.preventDefault();
-      const input = get('chat-url');
+      const input = get('chat-channel');
       const feedback = get('chat-feedback');
-      let url;
-      try {
-        url = new URL(input.value.trim());
-      } catch {
-        feedback.textContent = 'Pegá un enlace HTTPS válido.';
+      const channel = input.value.trim().replace(/^@/, '').toLowerCase();
+      if (!/^[a-z0-9_-]+$/.test(channel)) {
+        feedback.textContent = 'Escribí solo el nombre del canal, por ejemplo example.';
+        input.focus();
         return;
       }
-      if (url.protocol !== 'https:' || url.origin === location.origin || url.username || url.password) {
-        feedback.textContent = 'Pegá un enlace HTTPS de un proveedor externo.';
-        return;
-      }
+      chatUrl.searchParams.set('channel', channel);
       const frame = get('chat-frame');
-      frame.src = url.href;
+      frame.src = chatUrl.href;
       frame.hidden = false;
       get('chat-example').hidden = true;
-      get('chat-mode').textContent = 'Tu overlay';
-      feedback.textContent = 'Si el chat queda vacío, verificá que tu proveedor permita incrustar esa URL.';
+      get('chat-mode').textContent = 'Holy Chat';
+      feedback.textContent = 'Canal seleccionado: ' + channel;
     });
 
     get('copy-obs').addEventListener('click', async () => {
