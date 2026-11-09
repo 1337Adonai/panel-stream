@@ -59,7 +59,10 @@
     .chat .stage { height: clamp(300px, 50svh, 640px); }
     .chat .stage:has(#chat-idle:not([hidden])):has(#alert-layer[hidden]) { height: 88px; }
     .chat-idle { gap: 5px; color: var(--muted); font-size: .79rem; background: var(--well); }
-    #chat-form { padding: 5px; }
+    #chat-form, #chat-connected { padding: 5px; }
+    #chat-connected { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+    #chat-connected button { padding-inline: 8px; font-size: .76rem; }
+    #chat-connected-channel { flex: 1 1 64px; min-width: 0; padding-inline: 4px; font-size: .82rem; font-weight: 680; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .url-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 5px; }
     .chat-row { grid-template-columns: minmax(0, 1fr) auto auto; }
     button, input { font: inherit; min-height: 44px; border-radius: 8px; }
@@ -165,11 +168,17 @@
             <label class="screen-reader" for="chat-channel">Canal de Kick</label>
             <div class="url-row chat-row">
               <input id="chat-channel" type="text" placeholder="Canal de Kick" required autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="chat-feedback">
-              <button type="submit" class="secondary" aria-label="Abrir chat">Abrir</button>
-              <button id="chat-history" type="button" class="secondary" aria-controls="chat-frame" aria-pressed="false" hidden>Historial</button>
+              <button id="chat-connect" type="submit" class="secondary">Conectar</button>
+              <button id="chat-cancel" type="button" class="secondary" hidden>Cancelar</button>
             </div>
             <p class="help" id="chat-feedback" role="status"></p>
           </form>
+          <div id="chat-connected" hidden>
+            <span id="chat-connected-channel"></span>
+            <button id="chat-history" type="button" class="secondary" aria-controls="chat-frame">Kick Chat</button>
+            <button id="chat-change" type="button" class="secondary">Cambiar</button>
+            <button id="chat-disconnect" type="button" class="secondary">Desconectar</button>
+          </div>
         </section>
       </div>
       <div class="utilities">
@@ -424,25 +433,33 @@
 
     const chatFrame = get('chat-frame');
     const chatHistory = get('chat-history');
+    const chatForm = get('chat-form');
+    const chatInput = get('chat-channel');
+    const chatFeedback = get('chat-feedback');
+    const chatChange = get('chat-change');
     let activeChannel = '';
-    let showingHistory = false;
+    let showingKickChat = false;
 
     function showChat() {
       chatUrl.searchParams.set('channel', activeChannel);
-      chatFrame.src = showingHistory ? 'https://kick.com/popout/' + encodeURIComponent(activeChannel) + '/chat' : chatUrl.href;
-      chatFrame.title = showingHistory ? 'Historial y chat de Kick' : 'Chat de Kick';
-      chatHistory.setAttribute('aria-pressed', String(showingHistory));
-      chatHistory.textContent = showingHistory ? 'Compacto' : 'Historial';
+      chatFrame.src = showingKickChat ? 'https://kick.com/popout/' + encodeURIComponent(activeChannel) + '/chat' : chatUrl.href;
+      chatFrame.title = showingKickChat ? 'Kick Chat' : 'Holy Chat';
+      chatHistory.textContent = showingKickChat ? 'Holy Chat' : 'Kick Chat';
     }
 
-    get('chat-form').addEventListener('submit', (event) => {
+    function showChatControls(editing) {
+      chatForm.hidden = Boolean(activeChannel) && !editing;
+      get('chat-connected').hidden = !chatForm.hidden;
+      get('chat-cancel').hidden = !activeChannel;
+      chatFeedback.textContent = '';
+    }
+
+    chatForm.addEventListener('submit', (event) => {
       event.preventDefault();
-      const input = get('chat-channel');
-      const feedback = get('chat-feedback');
-      const channel = input.value.trim().replace(/^@/, '').toLowerCase();
+      const channel = chatInput.value.trim().replace(/^@/, '').toLowerCase();
       if (!/^[a-z0-9_-]+$/.test(channel)) {
-        feedback.textContent = 'Escribí solo el nombre del canal.';
-        input.focus();
+        chatFeedback.textContent = 'Escribí solo el nombre del canal.';
+        chatInput.focus();
         return;
       }
       if (channel !== activeChannel) {
@@ -450,17 +467,44 @@
         showChat();
       }
       chatFrame.hidden = false;
-      chatHistory.hidden = false;
       get('chat-idle').hidden = true;
-      input.value = channel;
-      feedback.textContent = '';
-      if (landscapePanel.matches) input.blur();
+      const channelLabel = get('chat-connected-channel');
+      channelLabel.textContent = '@' + channel;
+      channelLabel.title = channelLabel.textContent;
+      showChatControls(false);
+      chatChange.focus({ preventScroll: true });
+      showLandscapePanel();
+    });
+
+    chatChange.addEventListener('click', () => {
+      chatInput.value = activeChannel;
+      showChatControls(true);
+      chatInput.focus({ preventScroll: true });
+      chatInput.select();
+      showLandscapePanel();
+    });
+
+    get('chat-cancel').addEventListener('click', () => {
+      showChatControls(false);
+      chatChange.focus({ preventScroll: true });
+      showLandscapePanel();
+    });
+
+    get('chat-disconnect').addEventListener('click', () => {
+      activeChannel = '';
+      showingKickChat = false;
+      chatFrame.removeAttribute('src');
+      chatFrame.hidden = true;
+      get('chat-idle').hidden = false;
+      chatInput.value = '';
+      showChatControls(false);
+      get('chat-connect').focus({ preventScroll: true });
       showLandscapePanel();
     });
 
     chatHistory.addEventListener('click', () => {
       if (!activeChannel) return;
-      showingHistory = !showingHistory;
+      showingKickChat = !showingKickChat;
       showChat();
       showLandscapePanel();
     });
