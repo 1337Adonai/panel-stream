@@ -535,6 +535,7 @@
     }
     if (channelPattern.test(savedChannel)) openChannel(savedChannel);
 
+    const alertLinkKey = 'stream-pocket.alert-link';
     const alertProviders = [
       {
         name: 'StreamElements',
@@ -599,15 +600,7 @@
       alertLayer.classList.toggle('audio-only', alertAudioOnly.checked);
     });
 
-    get('alerts-form').addEventListener('submit', (event) => {
-      event.preventDefault();
-      const link = parseAlertLink(alertInput.value);
-      if (!link) {
-        alertFeedback.textContent = 'Pegá el enlace de alertas de StreamElements, Streamlabs o BotRix.';
-        alertInput.focus();
-        return;
-      }
-      const { url, provider } = link;
+    function connectAlert({ url, provider }) {
       const frame = document.createElement('iframe');
       frame.title = 'Alertas de ' + provider.name;
       if (provider.colorScheme) frame.style.colorScheme = provider.colorScheme;
@@ -632,6 +625,22 @@
       alertAudioOption.hidden = false;
       get('alerts-status').textContent = '· ' + provider.name;
       alertFeedback.textContent = 'Probá una alerta desde ' + provider.name + ' para verla sobre la cámara.';
+    }
+
+    get('alerts-form').addEventListener('submit', (event) => {
+      event.preventDefault();
+      const link = parseAlertLink(alertInput.value);
+      if (!link) {
+        alertFeedback.textContent = 'Pegá el enlace de alertas de StreamElements, Streamlabs o BotRix.';
+        alertInput.focus();
+        return;
+      }
+      connectAlert(link);
+      try {
+        localStorage.setItem(alertLinkKey, link.url.href);
+      } catch {
+        alertFeedback.textContent = 'Alerta conectada. El navegador no pudo guardar el enlace.';
+      }
     });
 
     alertStop.addEventListener('click', () => {
@@ -646,8 +655,22 @@
       alertLayer.classList.remove('audio-only');
       get('alerts-status').textContent = '';
       alertFeedback.textContent = '';
+      try {
+        localStorage.removeItem(alertLinkKey);
+      } catch {
+        alertFeedback.textContent = 'Alerta desconectada. El navegador no pudo borrar el enlace guardado.';
+      }
       alertInput.focus();
     });
+
+    let savedAlertLink = '';
+    try {
+      savedAlertLink = localStorage.getItem(alertLinkKey) || '';
+    } catch {
+      // El formulario sigue disponible si el navegador bloquea el almacenamiento.
+    }
+    const savedAlert = parseAlertLink(savedAlertLink);
+    if (savedAlert) connectAlert(savedAlert);
 
     get('copy-obs').addEventListener('click', async () => {
       const feedback = get('obs-feedback');
