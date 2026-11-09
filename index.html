@@ -84,15 +84,15 @@
     .alert-layer iframe { position: absolute; top: 0; left: 0; transform-origin: top left; background: transparent; }
     .alert-layer.audio-only { opacity: 0; }
     .utilities { display: grid; gap: 6px; margin-top: 6px; }
-    .alerts-settings { padding-inline: 10px; }
-    .alerts-settings > summary { display: flex; align-items: center; gap: 6px; min-height: 44px; cursor: pointer; font-size: .85rem; font-weight: 750; }
-    .alerts-settings > summary::after { content: '+'; margin-left: auto; font-size: 1.1rem; color: var(--muted); }
-    .alerts-settings[open] > summary::after { content: '−'; }
-    #alerts-status { color: var(--accent); font-size: .74rem; font-weight: 550; }
-    #alerts-form { display: grid; gap: 5px; padding-bottom: 8px; }
+    .utility-settings { padding-inline: 10px; }
+    .utility-settings > summary { display: flex; align-items: center; gap: 6px; min-height: 44px; cursor: pointer; font-size: .85rem; font-weight: 750; }
+    .utility-settings > summary::after { content: '+'; margin-left: auto; font-size: 1.1rem; color: var(--muted); }
+    .utility-settings[open] > summary::after { content: '−'; }
+    #alerts-status, #tts-status { color: var(--accent); font-size: .74rem; font-weight: 550; }
+    #alerts-form, #tts-form { display: grid; gap: 5px; padding-bottom: 8px; }
     .alerts-audio-only { display: flex; align-items: center; gap: 6px; min-height: 36px; font-size: .8rem; }
     .alerts-audio-only input { width: 16px; height: 16px; min-height: 0; accent-color: var(--accent); }
-    #alerts-feedback { padding: 0 0 8px; }
+    #alerts-feedback, #tts-feedback { padding: 0 0 8px; }
     .obs { display: grid; gap: 5px; padding: 5px 5px 5px 10px; }
     .obs-row { display: flex; align-items: center; justify-content: space-between; }
     .obs h2 { margin: 0; font-size: .86rem; }
@@ -195,7 +195,7 @@
         </section>
       </div>
       <div class="utilities">
-        <details class="panel alerts-settings">
+        <details class="panel utility-settings alerts-settings">
           <summary>Alertas <span id="alerts-status"></span></summary>
           <form id="alerts-form" autocomplete="off">
             <label class="screen-reader" for="alerts-url">Enlace de alertas</label>
@@ -208,6 +208,18 @@
           </form>
           <p id="alerts-feedback" class="help" role="status"></p>
         </details>
+        <details class="panel utility-settings">
+          <summary>TTS <span id="tts-status"></span></summary>
+          <form id="tts-form" autocomplete="off">
+            <label class="screen-reader" for="tts-url">Enlace de TTS</label>
+            <div class="url-row">
+              <input id="tts-url" type="text" inputmode="url" required autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Enlace de TTS" aria-describedby="tts-feedback">
+              <button id="tts-toggle" type="submit">Conectar</button>
+            </div>
+          </form>
+          <p id="tts-feedback" class="help" role="status"></p>
+        </details>
+        <div id="tts-player" class="screen-reader" inert></div>
         <section class="panel obs" aria-labelledby="obs-title">
           <div class="obs-row">
             <h2 id="obs-title">OBS</h2>
@@ -649,6 +661,68 @@
     }
     const savedAlert = parseAlertLink(savedAlertLink);
     if (savedAlert) connectAlert(savedAlert);
+
+    const ttsKey = 'stream-pocket.tts';
+    const ttsInput = get('tts-url');
+    const ttsPlayer = get('tts-player');
+    const ttsToggle = get('tts-toggle');
+    const ttsFeedback = get('tts-feedback');
+
+    function parseTtsLink(value) {
+      try {
+        const url = new URL(value.trim());
+        if (url.protocol === 'https:' && url.origin !== location.origin && !url.username && !url.password) return url;
+      } catch {
+        // El formulario indica si el enlace es inválido.
+      }
+      return null;
+    }
+
+    function setTtsConnection(url, connected) {
+      if (connected) {
+        const frame = document.createElement('iframe');
+        frame.title = 'Audio de TTS';
+        frame.tabIndex = -1;
+        frame.setAttribute('sandbox', 'allow-scripts allow-same-origin');
+        frame.allow = "camera 'none'; microphone 'none'; autoplay " + url.origin;
+        frame.referrerPolicy = 'no-referrer';
+        frame.src = url.href;
+        ttsPlayer.replaceChildren(frame);
+      } else {
+        ttsPlayer.replaceChildren();
+      }
+      ttsInput.value = url.href;
+      ttsInput.readOnly = connected;
+      ttsToggle.textContent = connected ? 'Desconectar' : 'Conectar';
+      get('tts-status').textContent = connected ? '· Activo' : '';
+      ttsFeedback.textContent = '';
+    }
+
+    get('tts-form').addEventListener('submit', (event) => {
+      event.preventDefault();
+      const url = parseTtsLink(ttsInput.value);
+      if (!url) {
+        ttsFeedback.textContent = 'Pegá un enlace HTTPS de TTS.';
+        ttsInput.focus();
+        return;
+      }
+      const connected = !ttsPlayer.firstElementChild;
+      setTtsConnection(url, connected);
+      try {
+        localStorage.setItem(ttsKey, JSON.stringify({ url: url.href, connected }));
+      } catch {
+        ttsFeedback.textContent = 'El navegador no pudo guardar el estado de TTS.';
+      }
+    });
+
+    let savedTts = null;
+    try {
+      savedTts = JSON.parse(localStorage.getItem(ttsKey));
+    } catch {
+      // El formulario sigue disponible si el navegador bloquea el almacenamiento.
+    }
+    const savedTtsUrl = parseTtsLink(savedTts?.url ?? '');
+    if (savedTtsUrl) setTtsConnection(savedTtsUrl, savedTts.connected === true);
 
     get('copy-obs').addEventListener('click', async () => {
       const feedback = get('obs-feedback');
