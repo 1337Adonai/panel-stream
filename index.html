@@ -32,7 +32,7 @@
     .workspace { display: grid; gap: 6px; align-items: start; }
     .panel { min-width: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); overflow: hidden; }
     .camera { position: relative; }
-    .fullscreen-control { position: absolute; top: 6px; right: 6px; z-index: 1; text-align: right; }
+    .fullscreen-control { position: absolute; top: 6px; right: 6px; z-index: 2; text-align: right; }
     #fullscreen-toggle { display: inline-grid; place-items: center; width: 44px; padding: 0; background: #181c19; }
     #fullscreen-toggle svg { width: 20px; height: 20px; }
     #fullscreen-feedback:not(:empty) { margin-top: 4px; padding: 4px 7px; border-radius: 6px; background: var(--panel); }
@@ -51,21 +51,22 @@
     .camera-choices input { position: absolute; opacity: 0; margin: 0; }
     .camera-choices label:has(input:checked), #camera-actions button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: #2d3b23; }
     .camera-choices label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
-    #camera-actions { flex-wrap: wrap; padding: 4px; }
-    #camera-help { width: 100%; padding-inline: 6px; }
-    #camera-help:empty, .help:empty { display: none; }
+    #camera-actions { position: relative; z-index: 1; flex-wrap: wrap; padding: 2px 4px; }
+    #camera-help { position: absolute; top: calc(100% + 4px); left: 4px; max-width: calc(100% - 8px); padding: 4px 7px; border-radius: 6px; background: var(--panel); pointer-events: none; }
+    .help:empty { display: none; }
     #stop-camera { margin-left: auto; }
     iframe { display: block; width: 100%; height: 100%; border: 0; min-width: 0; min-height: 0; }
     .chat .stage { height: clamp(300px, 50svh, 640px); }
     .chat .stage:has(#chat-idle:not([hidden])):has(#alert-layer[hidden]) { height: 88px; }
     .chat-idle { gap: 5px; color: var(--muted); font-size: .79rem; background: var(--well); }
-    #chat-form, #chat-connected { padding: 5px; }
-    #chat-connected { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+    #chat-form { padding: 5px; }
+    #chat-connected { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; padding: 2px 4px; }
     #chat-connected button { padding-inline: 8px; font-size: .76rem; }
     #chat-connected-channel { flex: 1 1 64px; min-width: 0; padding-inline: 4px; font-size: .82rem; font-weight: 680; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .url-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 5px; }
     .chat-row { grid-template-columns: minmax(0, 1fr) auto auto; }
     button, input { font: inherit; min-height: 44px; border-radius: 8px; }
+    #camera-actions button, #chat-connected button { min-height: 40px; min-width: 44px; padding-block: 3px; }
     button { font-size: .83rem; font-weight: 750; background: var(--accent); color: #182114; border: 1px solid transparent; cursor: pointer; padding: 5px 12px; }
     button.secondary { background: #202722; border-color: #3a483e; color: var(--text); }
     button:hover { filter: brightness(1.09); }
@@ -110,8 +111,8 @@
       }
       .workspace > .panel { display: grid; grid-template-rows: minmax(0, 1fr) auto; }
       .camera .stage, .chat .stage, .chat .stage:has(#chat-idle:not([hidden])):has(#alert-layer[hidden]) { grid-row: 1; height: auto; min-height: 0; }
-      #camera-actions { grid-row: 2; padding: 5px; }
-      #camera-help { padding: 0; }
+      #camera-actions { grid-row: 2; }
+      #camera-help { top: auto; bottom: calc(100% + 4px); }
     }
   </style>
 </head>
@@ -168,7 +169,7 @@
             <label class="screen-reader" for="chat-channel">Canal de Kick</label>
             <div class="url-row chat-row">
               <input id="chat-channel" type="text" placeholder="Canal de Kick" required autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="chat-feedback">
-              <button id="chat-connect" type="submit" class="secondary">Conectar</button>
+              <button type="submit" class="secondary">Conectar</button>
               <button id="chat-cancel" type="button" class="secondary" hidden>Cancelar</button>
             </div>
             <p class="help" id="chat-feedback" role="status"></p>
@@ -177,7 +178,6 @@
             <span id="chat-connected-channel"></span>
             <button id="chat-history" type="button" class="secondary" aria-controls="chat-frame">Kick Chat</button>
             <button id="chat-change" type="button" class="secondary">Cambiar</button>
-            <button id="chat-disconnect" type="button" class="secondary">Desconectar</button>
           </div>
         </section>
       </div>
@@ -487,18 +487,6 @@
     get('chat-cancel').addEventListener('click', () => {
       showChatControls(false);
       chatChange.focus({ preventScroll: true });
-      showLandscapePanel();
-    });
-
-    get('chat-disconnect').addEventListener('click', () => {
-      activeChannel = '';
-      showingKickChat = false;
-      chatFrame.removeAttribute('src');
-      chatFrame.hidden = true;
-      get('chat-idle').hidden = false;
-      chatInput.value = '';
-      showChatControls(false);
-      get('chat-connect').focus({ preventScroll: true });
       showLandscapePanel();
     });
 
