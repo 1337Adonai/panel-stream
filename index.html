@@ -437,6 +437,8 @@
     const chatInput = get('chat-channel');
     const chatFeedback = get('chat-feedback');
     const chatChange = get('chat-change');
+    const chatChannelKey = 'stream-pocket.chat-channel';
+    const channelPattern = /^[a-z0-9_-]+$/;
     let activeChannel = '';
     let showingKickChat = false;
 
@@ -454,14 +456,7 @@
       chatFeedback.textContent = '';
     }
 
-    chatForm.addEventListener('submit', (event) => {
-      event.preventDefault();
-      const channel = chatInput.value.trim().replace(/^@/, '').toLowerCase();
-      if (!/^[a-z0-9_-]+$/.test(channel)) {
-        chatFeedback.textContent = 'Escribí solo el nombre del canal.';
-        chatInput.focus();
-        return;
-      }
+    function openChannel(channel) {
       if (channel !== activeChannel) {
         activeChannel = channel;
         showChat();
@@ -472,6 +467,22 @@
       channelLabel.textContent = '@' + channel;
       channelLabel.title = channelLabel.textContent;
       showChatControls(false);
+    }
+
+    chatForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const channel = chatInput.value.trim().replace(/^@/, '').toLowerCase();
+      if (!channelPattern.test(channel)) {
+        chatFeedback.textContent = 'Escribí solo el nombre del canal.';
+        chatInput.focus();
+        return;
+      }
+      openChannel(channel);
+      try {
+        localStorage.setItem(chatChannelKey, channel);
+      } catch {
+        // El chat también funciona si el navegador bloquea el almacenamiento.
+      }
       chatChange.focus({ preventScroll: true });
       showLandscapePanel();
     });
@@ -496,6 +507,14 @@
       showChat();
       showLandscapePanel();
     });
+
+    let savedChannel = '';
+    try {
+      savedChannel = localStorage.getItem(chatChannelKey) || '';
+    } catch {
+      // El formulario sigue disponible si no se puede leer el almacenamiento.
+    }
+    if (channelPattern.test(savedChannel)) openChannel(savedChannel);
 
     const alertProviders = [
       {
