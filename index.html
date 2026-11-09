@@ -104,7 +104,8 @@
             <span class="chip mono">VDO.Ninja</span>
           </div>
           <div id="camera-actions" class="panel-foot" hidden>
-            <button id="switch-camera" type="button" disabled>Cambiar cámara</button>
+            <button type="button" data-facing="user" disabled>Frontal</button>
+            <button type="button" data-facing="environment" disabled>Trasera</button>
             <button id="stop-camera" type="button" class="secondary">Cerrar cámara</button>
             <p id="camera-help" class="help" role="status"></p>
           </div>
@@ -194,30 +195,49 @@
     const cameraSlot = get('camera-frame-slot');
     const cameraEmpty = get('camera-empty');
     const cameraActions = get('camera-actions');
-    const switchCamera = get('switch-camera');
+    const cameraButtons = cameraActions.querySelectorAll('button[data-facing]');
     const stopCamera = get('stop-camera');
     const cameraHelp = get('camera-help');
     let cameraSwitchTimeout;
+    let cameraSwitchId = 0;
 
-    // VDO.Ninja's iframe API runs this fixed command using its own camera control.
-    const cycleCameraCommand = {
-      function: 'eval',
-      value: `(() => {
-        let status = 'unavailable';
-        if (typeof cycleCameras === 'function') {
-          const active = session.streamSrc?.getVideoTracks().some(track => track.readyState === 'live');
-          if (!active) {
-            status = 'inactive';
-          } else if (document.getElementById('videoSource3')?.options.length > 1) {
-            cycleCameras();
-            status = 'requested';
-          } else {
-            status = 'single';
+    // Runs inside VDO.Ninja. Its capture code gives facingMode priority over the device picker.
+    async function switchVdoFacing(facing, requestId) {
+      const reply = (status) => parent.postMessage({ panelCameraSwitch: status, requestId }, session.iframetarget);
+      const liveTrack = () => session.streamSrc?.getVideoTracks().find(track => track.readyState === 'live');
+      const previousTrack = liveTrack();
+      const picker = document.getElementById('videoSource3');
+      if (!previousTrack || !picker?.value || picker.value === 'ZZZ') return reply('inactive');
+      if (typeof grabVideo !== 'function') return reply('unavailable');
+      if (previousTrack.getSettings().facingMode === facing) return reply('switched');
+
+      try {
+        session.facingMode = facing;
+        activatedPreview = false;
+        await grabVideo(session.quality, 'videosource', 'select#videoSource3');
+        const deadline = Date.now() + 4500;
+        while (Date.now() < deadline) {
+          const track = liveTrack();
+          if (track && track !== previousTrack) {
+            const settings = track.getSettings();
+            if (Array.from(picker.options).some(option => option.value === settings.deviceId)) {
+              picker.value = settings.deviceId;
+            }
+            if (settings.facingMode === facing) return reply('switched');
+            if (!settings.facingMode && session.facingMode === facing) return reply('requested');
+            return reply('unavailable');
           }
+          await new Promise(resolve => setTimeout(resolve, 150));
         }
-        parent.postMessage({ panelCameraSwitch: status }, session.iframetarget);
-      })();`
-    };
+      } catch {
+        return reply('unavailable');
+      }
+      reply('unavailable');
+    }
+
+    function disableCameraButtons(disabled) {
+      cameraButtons.forEach(button => { button.disabled = disabled; });
+    }
 
     get('start-camera').addEventListener('click', () => {
       const frame = document.createElement('iframe');
@@ -229,7 +249,7 @@
       if (location.origin !== 'null') url.searchParams.set('iframetarget', location.origin);
       frame.src = url.href;
       frame.addEventListener('load', () => {
-        if (cameraSlot.firstElementChild === frame) switchCamera.disabled = false;
+        if (cameraSlot.firstElementChild === frame) disableCameraButtons(false);
       }, { once: true });
       cameraSlot.replaceChildren(frame);
       cameraSlot.hidden = false;
@@ -238,33 +258,41 @@
       cameraHelp.textContent = 'Habilitá la cámara y el micrófono en VDO.Ninja.';
     });
 
-    switchCamera.addEventListener('click', () => {
-      const cameraWindow = cameraSlot.firstElementChild?.contentWindow;
-      if (!cameraWindow || switchCamera.disabled) return;
-      switchCamera.disabled = true;
-      cameraHelp.textContent = 'Pidiendo el cambio de cámara…';
-      cameraSwitchTimeout = setTimeout(() => {
-        cameraSwitchTimeout = undefined;
-        switchCamera.disabled = false;
-        cameraHelp.textContent = 'VDO.Ninja no respondió. Probá el selector de cámara dentro del video.';
-      }, 2500);
-      cameraWindow.postMessage(cycleCameraCommand, vdoOrigin);
+    cameraButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        const cameraWindow = cameraSlot.firstElementChild?.contentWindow;
+        if (!cameraWindow || button.disabled) return;
+        const facing = button.dataset.facing === 'environment' ? 'environment' : 'user';
+        const requestId = ++cameraSwitchId;
+        disableCameraButtons(true);
+        cameraHelp.textContent = 'Cambiando cámara…';
+        cameraSwitchTimeout = setTimeout(() => {
+          cameraSwitchTimeout = undefined;
+          disableCameraButtons(false);
+          cameraHelp.textContent = 'El cambio tardó más de lo esperado. Revisá la vista previa.';
+        }, 6500);
+        cameraWindow.postMessage({
+          function: 'eval',
+          value: '(' + switchVdoFacing.toString() + ')(' + JSON.stringify(facing) + ', ' + requestId + ');'
+        }, vdoOrigin);
+      });
     });
 
     window.addEventListener('message', (event) => {
       if (!cameraSwitchTimeout || event.origin !== vdoOrigin ||
-          event.source !== cameraSlot.firstElementChild?.contentWindow) return;
+          event.source !== cameraSlot.firstElementChild?.contentWindow ||
+          event.data?.requestId !== cameraSwitchId) return;
       const messages = {
-        requested: 'Cambio solicitado. Si hay más lentes, tocá de nuevo para recorrerlas.',
+        switched: 'Cámara cambiada.',
+        requested: 'Revisá la cámara en la vista previa.',
         inactive: 'Primero iniciá la cámara en VDO.Ninja.',
-        single: 'VDO.Ninja solo encontró una cámara disponible.',
-        unavailable: 'Usá el selector de cámara dentro de VDO.Ninja.'
+        unavailable: 'No se pudo confirmar el cambio. Revisá la vista previa.'
       };
       const status = event.data?.panelCameraSwitch;
       if (!Object.hasOwn(messages, status)) return;
       clearTimeout(cameraSwitchTimeout);
       cameraSwitchTimeout = undefined;
-      switchCamera.disabled = false;
+      disableCameraButtons(false);
       cameraHelp.textContent = messages[status];
     });
 
@@ -275,7 +303,7 @@
       cameraSlot.hidden = true;
       cameraEmpty.hidden = false;
       cameraActions.hidden = true;
-      switchCamera.disabled = true;
+      disableCameraButtons(true);
       get('start-camera').focus();
     });
 
