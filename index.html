@@ -55,15 +55,18 @@
     #camera-help { position: absolute; bottom: calc(100% + 4px); left: 4px; max-width: calc(100% - 8px); padding: 4px 7px; border-radius: 6px; background: var(--panel); pointer-events: none; }
     .control-label { flex: 0 0 48px; width: 48px; padding-left: 4px; color: var(--muted); font-size: .75rem; font-weight: 680; }
     .help:empty { display: none; }
-    #stop-camera { margin-left: auto; }
     iframe { display: block; width: 100%; height: 100%; border: 0; min-width: 0; min-height: 0; }
     .chat .stage { height: clamp(300px, 50svh, 640px); }
     .chat .stage:has(#chat-idle:not([hidden])):has(#alert-layer[hidden]) { height: 88px; }
     .chat-idle { gap: 5px; color: var(--muted); font-size: .79rem; background: var(--well); }
     #chat-form { padding: 2px 4px; }
     #chat-connected { display: flex; align-items: center; gap: 5px; padding: 1px 4px; }
+    #camera-actions:not([hidden]) ~ :is(#chat-form, #chat-connected) { border-top: 1px solid var(--line); }
     #chat-connected button { padding-inline: 8px; font-size: .76rem; }
-    #chat-connected-channel { flex: 1 1 64px; min-width: 0; padding-inline: 4px; font-size: .82rem; font-weight: 680; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #chat-connected-channel { min-width: 0; font-size: .82rem; font-weight: 680; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #chat-change, #chat-history { flex-shrink: 0; white-space: nowrap; }
+    #chat-history { display: inline-flex; align-items: center; justify-content: center; gap: 5px; margin-left: auto; }
+    #chat-history img { width: 16px; height: 16px; object-fit: contain; }
     .url-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 5px; }
     .chat-row { grid-template-columns: auto minmax(0, 1fr) auto auto; }
     button, input { font: inherit; min-height: 44px; border-radius: 8px; }
@@ -172,8 +175,12 @@
           <div id="chat-connected" hidden>
             <span class="control-label" aria-hidden="true">Chat:</span>
             <span id="chat-connected-channel"></span>
-            <button id="chat-history" type="button" class="secondary" aria-controls="chat-frame">Kick Chat</button>
             <button id="chat-change" type="button" class="secondary">Cambiar</button>
+            <button id="chat-history" type="button" class="secondary" aria-controls="chat-frame">
+              <img id="kick-chat-icon" src="https://kick.com/favicon.ico" alt="">
+              <img id="holy-chat-icon" src="https://yuuzito.github.io/Holy-chat-overlay/holychat-logo.png" alt="" hidden>
+              <span id="chat-history-label">Kick Chat</span>
+            </button>
           </div>
         </section>
         <section class="panel chat" aria-label="Chat de Kick">
@@ -452,7 +459,9 @@
       chatUrl.searchParams.set('channel', activeChannel);
       chatFrame.src = showingKickChat ? 'https://kick.com/popout/' + encodeURIComponent(activeChannel) + '/chat' : chatUrl.href;
       chatFrame.title = showingKickChat ? 'Kick Chat' : 'Holy Chat';
-      chatHistory.textContent = showingKickChat ? 'Holy Chat' : 'Kick Chat';
+      get('chat-history-label').textContent = showingKickChat ? 'Holy Chat' : 'Kick Chat';
+      get('kick-chat-icon').hidden = showingKickChat;
+      get('holy-chat-icon').hidden = !showingKickChat;
     }
 
     function showChatControls(editing) {
