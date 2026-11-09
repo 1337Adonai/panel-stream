@@ -21,9 +21,7 @@
     [hidden] { display: none !important; }
     body { margin: 0; background: var(--bg); color: var(--ink); }
     .wrap { width: min(1080px, calc(100% - 40px)); margin: 0 auto; }
-    header { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 17px 0; border-bottom: 1px solid var(--line); }
-    a { color: var(--accent); text-underline-offset: 3px; }
-    header a { font-size: .84rem; }
+    header { padding: 17px 0; border-bottom: 1px solid var(--line); }
     .mono { font: 680 .75rem/1.35 ui-monospace, Consolas, monospace; letter-spacing: .08em; text-transform: uppercase; }
     .intro { padding: 24px 0 19px; }
     .intro .mono { color: var(--accent); }
@@ -86,11 +84,10 @@
   <div class="wrap">
     <header>
       <span class="mono">Taller de streaming</span>
-      <a href="stream-desde-el-celular.html">Volver al simulador</a>
     </header>
     <main>
       <div class="intro">
-        <div class="mono">Prototipo para el celular</div>
+        <div class="mono">MVP · Versión 0.1</div>
         <h1>Cámara + chat</h1>
         <p>Mandá cámara y micrófono a OBS mientras leés el chat acá mismo.</p>
       </div>
@@ -240,9 +237,9 @@
       shadow: '0',
       msgShadow: '1',
       textSize: 'large',
-      size: '24',
-      emoteSize: '36',
-      badgeSize: '24',
+      size: '14',
+      emoteSize: '22',
+      badgeSize: '14',
       font: 'inter',
       fontWeight: '700',
       animation: 'none',
@@ -256,7 +253,8 @@
       fade: '20',
       donations: 'true',
       rewards: 'false',
-      overlay: 'true'
+      overlay: 'true',
+      background: '#0b0e0fff'
     }).toString();
 
     get('chat-form').addEventListener('submit', (event) => {
