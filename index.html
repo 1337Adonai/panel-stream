@@ -4,205 +4,190 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="no-referrer">
-  <title>Cámara + chat · Taller de streaming</title>
+  <meta name="theme-color" content="#101311">
+  <title>Stream Pocket</title>
   <style>
     :root {
       color-scheme: dark;
-      --bg: #171c17;
-      --panel: #232b22;
-      --field: #171e17;
-      --line: #445241;
-      --ink: #f1f5eb;
-      --muted: #bdc9b7;
-      --accent: #dbfa75;
-      font: 16px/1.45 system-ui, sans-serif;
+      --bg: #101311;
+      --panel: #181c19;
+      --well: #0b0e0f;
+      --line: #2c352f;
+      --text: #f1f5ef;
+      --muted: #a9b5ad;
+      --accent: #d5fa7c;
+      font: 16px/1.4 system-ui, sans-serif;
     }
     * { box-sizing: border-box; }
     [hidden] { display: none !important; }
-    body { margin: 0; background: var(--bg); color: var(--ink); }
-    .wrap { width: min(1080px, calc(100% - 40px)); margin: 0 auto; }
-    header { padding: 17px 0; border-bottom: 1px solid var(--line); }
-    .mono { font: 680 .75rem/1.35 ui-monospace, Consolas, monospace; letter-spacing: .08em; text-transform: uppercase; }
-    .intro { padding: 24px 0 19px; }
-    .intro .mono { color: var(--accent); }
-    h1 { font-size: clamp(2.4rem, 7vw, 4.15rem); line-height: 1.03; letter-spacing: -.07em; margin: 5px 0 6px; }
+    body { margin: 0; background: var(--bg); color: var(--text); }
+    .wrap { width: min(960px, calc(100% - 24px)); margin-inline: auto; }
+    header { display: flex; align-items: center; gap: 9px; padding: 11px 2px; }
+    header h1 { font-size: 1.05rem; letter-spacing: -.035em; margin: 0; }
+    header svg { width: 27px; height: 27px; padding: 5px; color: var(--accent); background: #283523; border-radius: 8px; }
+    main { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
     p { margin: 0; }
-    .intro p, .help { color: var(--muted); }
-    .notice { background: #364231; color: #eaf4e2; padding: 9px 13px; border-radius: 8px; margin-bottom: 13px; font-size: .83rem; }
-    .workspace { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); align-items: start; gap: 12px; }
-    .panel { min-width: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 13px; overflow: hidden; }
-    .panel-head { min-height: 55px; display: flex; justify-content: space-between; gap: 8px; align-items: center; padding: 8px 12px; }
-    .panel-head h2 { margin: 0; font-size: 1rem; }
-    .chip { color: var(--muted); font-size: .69rem; }
-    .chat .panel-head { min-height: 0; padding: 5px 12px; }
-    .chat .panel-head h2 { font-size: .82rem; }
-    .stage { background: var(--field); border-block: 1px solid var(--line); height: 340px; display: grid; }
-    .chat .stage { height: 500px; position: relative; }
-    .empty { display: grid; justify-items: center; align-content: center; gap: 8px; padding: 18px; text-align: center; }
-    .empty svg { stroke: var(--accent); fill: none; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; width: 44px; height: 44px; margin-bottom: 3px; }
-    .empty p { font-size: .83rem; color: var(--muted); max-width: 30ch; }
-    .camera-facing { border: 0; margin: 0 0 3px; padding: 0; }
-    .camera-facing legend { margin: 0 auto 5px; padding: 0; color: var(--muted); font-size: .78rem; }
-    .camera-choices { display: flex; gap: 6px; }
-    .camera-choices label { position: relative; display: grid; place-items: center; min-height: 44px; padding: 0 13px; border: 1px solid #61735b; border-radius: 7px; cursor: pointer; font-size: .85rem; font-weight: 650; }
+    .notice { background: var(--panel); padding: 7px 10px; border-radius: 8px; margin-bottom: 6px; }
+    .workspace { display: grid; gap: 6px; align-items: start; }
+    .panel { min-width: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); overflow: hidden; }
+    .stage { position: relative; display: grid; min-width: 0; background: var(--well); }
+    .camera .stage { height: clamp(182px, 32svh, 330px); }
+    #camera-frame-slot { min-width: 0; min-height: 0; }
+    .camera-idle, .chat-idle {
+      background: radial-gradient(ellipse at 50% 20%, #213128 0%, transparent 65%), var(--well);
+      display: grid; place-content: center; justify-items: center; gap: 9px; padding: 10px;
+    }
+    .camera-idle > svg, .chat-idle > svg { color: var(--muted); width: 25px; height: 25px; }
+    .camera-idle > svg { color: var(--accent); }
+    .camera-facing { border: 0; margin: 0; padding: 0; }
+    .camera-choices, #camera-actions { display: flex; gap: 5px; align-items: center; }
+    .camera-choices label { position: relative; display: grid; place-items: center; min-height: 44px; padding: 0 12px; border: 1px solid #56645a; border-radius: 8px; cursor: pointer; font-size: .83rem; font-weight: 680; }
     .camera-choices input { position: absolute; opacity: 0; margin: 0; }
-    .camera-choices label:has(input:checked) { border-color: var(--accent); color: var(--accent); background: #303f27; }
-    .camera-choices label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 3px; }
-    iframe { width: 100%; height: 100%; border: 0; min-width: 0; min-height: 0; }
-    #chat-frame { background: #283328; }
-    .chat-example { display: grid; align-content: end; gap: 8px; padding: 14px; }
-    .chat-example .mono { color: var(--muted); }
-    .chat-example p { background: #2d382b; border-radius: 7px; padding: 7px 9px; font-size: .83rem; }
-    .chat-example strong { color: var(--accent); margin-right: 4px; }
-    .panel-foot { min-height: 60px; padding: 9px 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-    #camera-actions { min-height: 0; padding-block: 5px; }
-    button, input, select { font: inherit; min-height: 42px; border-radius: 7px; }
-    button { font-size: .85rem; font-weight: 750; background: var(--accent); color: #192117; border: 1px solid transparent; cursor: pointer; padding: 6px 12px; }
-    button.secondary { background: transparent; border-color: #61735b; color: var(--ink); }
+    .camera-choices label:has(input:checked), #camera-actions button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: #2d3b23; }
+    .camera-choices label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+    #camera-actions { flex-wrap: wrap; padding: 4px; }
+    #camera-help { width: 100%; padding-inline: 6px; }
+    #camera-help:empty, .help:empty { display: none; }
+    #stop-camera { margin-left: auto; }
+    iframe { display: block; width: 100%; height: 100%; border: 0; min-width: 0; min-height: 0; }
+    .chat .stage { height: clamp(300px, 50svh, 640px); }
+    .chat .stage:has(#chat-idle:not([hidden])):has(#alert-layer[hidden]) { height: 88px; }
+    .chat-idle { gap: 5px; color: var(--muted); font-size: .79rem; background: var(--well); }
+    #chat-form { padding: 5px; }
+    .url-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 5px; }
+    .chat-row { grid-template-columns: minmax(0, 1fr) auto auto; }
+    button, input { font: inherit; min-height: 44px; border-radius: 8px; }
+    button { font-size: .83rem; font-weight: 750; background: var(--accent); color: #182114; border: 1px solid transparent; cursor: pointer; padding: 5px 12px; }
+    button.secondary { background: #202722; border-color: #3a483e; color: var(--text); }
     button:hover { filter: brightness(1.09); }
-    button:disabled { opacity: .6; cursor: default; }
-    button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-    input, select { padding: 7px 10px; background: var(--field); color: var(--ink); border: 1px solid var(--line); width: 100%; min-width: 0; font-size: 16px; }
-    .url-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 7px; }
-    #chat-form, #alerts-form { display: grid; width: 100%; gap: 5px; }
-    #chat-form label, #alerts-form label { font-weight: 650; font-size: .78rem; }
-    .help { font-size: .78rem; }
+    button:disabled { opacity: .55; cursor: default; }
+    button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    input { padding: 5px 9px; background: var(--well); color: var(--text); border: 1px solid var(--line); width: 100%; min-width: 0; font-size: 16px; }
+    .help { color: var(--muted); font-size: .77rem; }
+    #chat-feedback { padding: 3px 4px 0; }
     .alert-layer { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
     .alert-layer iframe { position: absolute; top: 0; left: 0; transform-origin: top left; }
-    .alerts-settings { border-top: 1px solid var(--line); padding: 0 12px; }
-    .alerts-settings summary { padding: 10px 0; cursor: pointer; font-size: .85rem; font-weight: 700; }
-    #alerts-status { color: var(--accent); font-weight: 500; }
-    .alerts-body { display: grid; gap: 8px; padding-bottom: 12px; }
-    .alerts-size { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 7px; border: 0; padding: 0; margin: 2px 0; }
-    .alerts-size legend { font-size: .78rem; color: var(--muted); padding: 0; }
-    .alerts-size label { display: grid; gap: 3px; }
-    .alerts-buttons { display: flex; flex-wrap: wrap; gap: 7px; }
-    .obs { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); align-items: start; gap: 15px; margin: 12px 0 22px; padding: 13px; }
-    .obs h2 { font-size: 1rem; margin: 0 0 5px; }
-    .obs p { font-size: .82rem; color: var(--muted); }
-    #obs-feedback { margin-top: 5px; }
+    .utilities { display: grid; gap: 6px; margin-top: 6px; }
+    .alerts-settings { padding-inline: 10px; }
+    .alerts-settings > summary { display: flex; align-items: center; gap: 6px; min-height: 44px; cursor: pointer; font-size: .85rem; font-weight: 750; }
+    .alerts-settings > summary::after { content: '+'; margin-left: auto; font-size: 1.1rem; color: var(--muted); }
+    .alerts-settings[open] > summary::after { content: '−'; }
+    #alerts-status { color: var(--accent); font-size: .74rem; font-weight: 550; }
+    #alerts-form { display: grid; gap: 5px; padding-bottom: 8px; }
+    #alerts-feedback { padding: 0 0 8px; }
+    .alerts-size { margin-bottom: 8px; }
+    .alerts-size summary { min-height: 44px; align-content: center; color: var(--muted); cursor: pointer; font-size: .78rem; }
+    .alerts-size .dimensions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; }
+    .alerts-size label { display: grid; gap: 3px; color: var(--muted); font-size: .76rem; }
+    .obs { display: grid; gap: 5px; padding: 5px 5px 5px 10px; }
+    .obs-row { display: flex; align-items: center; justify-content: space-between; }
+    .obs h2 { margin: 0; font-size: .86rem; }
     .screen-reader { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-    @media (max-width: 680px) {
-      .wrap { width: calc(100% - 24px); }
-      .workspace, .obs { grid-template-columns: 1fr; }
-      .workspace { gap: 4px; }
-      .stage { height: clamp(230px, 42svh, 320px); }
-      .chat .stage { height: clamp(300px, 55svh, 560px); }
-      .empty { padding: 12px; }
-      .empty svg { width: 36px; height: 36px; }
-      .intro { padding: 17px 0 12px; }
-      .panel-head { min-height: 47px; }
+    @media (min-width: 720px) {
+      .workspace { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
+      .camera .stage { height: clamp(300px, 58svh, 600px); }
+      .chat .stage { height: clamp(300px, 58svh, 600px); }
+      .chat .stage:has(#chat-idle:not([hidden])):has(#alert-layer[hidden]) { height: 180px; }
+    }
+    @media (orientation: landscape) and (min-width: 520px) and (max-height: 600px) {
+      .wrap {
+        width: min(960px, calc(100% - max(16px, env(safe-area-inset-left) + env(safe-area-inset-right))));
+      }
+      header { padding-block: 6px; }
+      .workspace {
+        grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+        align-items: stretch;
+        height: max(210px, calc(100dvh - 45px));
+      }
+      .workspace > .panel { display: grid; grid-template-rows: minmax(0, 1fr) auto; }
+      .camera .stage, .chat .stage, .chat .stage:has(#chat-idle:not([hidden])):has(#alert-layer[hidden]) { grid-row: 1; height: auto; min-height: 0; }
+      #camera-actions { grid-row: 2; padding: 5px; }
+      #camera-help { padding: 0; }
     }
   </style>
 </head>
 <body>
   <div class="wrap">
     <header>
-      <span class="mono">Taller de streaming</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="m10 9 5 3-5 3z"/></svg>
+      <h1>Stream Pocket</h1>
     </header>
     <main>
-      <div class="intro">
-        <div class="mono">MVP · Versión 0.2</div>
-        <h1>Cámara + chat</h1>
-        <p>Mandá cámara y micrófono a OBS mientras ves el chat y las alertas de Kick.</p>
-      </div>
-      <p id="local-notice" class="notice" hidden>Para probar cámara y chat juntos en el celu, abrí este panel desde una URL HTTPS.</p>
+      <p id="local-notice" class="help notice" hidden>Abrí el panel por HTTPS para usar la cámara.</p>
       <div class="workspace">
-        <section class="panel" aria-labelledby="camera-title">
-          <div class="panel-head">
-            <h2 id="camera-title">01 · Cámara y micrófono</h2>
-            <span class="chip mono">VDO.Ninja</span>
-          </div>
-          <div id="camera-actions" class="panel-foot" hidden>
-            <button type="button" data-facing="user" disabled>Frontal</button>
-            <button type="button" data-facing="environment" disabled>Trasera</button>
-            <button id="stop-camera" type="button" class="secondary">Cerrar cámara</button>
+        <section class="panel camera" aria-label="Cámara">
+          <div id="camera-actions" hidden>
+            <button type="button" class="secondary" data-facing="user" aria-pressed="false" disabled>Frontal</button>
+            <button type="button" class="secondary" data-facing="environment" aria-pressed="false" disabled>Trasera</button>
+            <button id="stop-camera" type="button" class="secondary" aria-label="Cerrar cámara">Cerrar</button>
             <p id="camera-help" class="help" role="status"></p>
           </div>
           <div class="stage">
-            <div id="camera-empty" class="empty">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3"/></svg>
-              <strong>Prepará tu señal</strong>
+            <div id="camera-empty" class="camera-idle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3"/></svg>
               <fieldset class="camera-facing">
-                <legend>Cámara inicial</legend>
+                <legend class="screen-reader">Cámara inicial</legend>
                 <div class="camera-choices">
                   <label><input type="radio" name="camera-facing" value="front" checked>Frontal</label>
                   <label><input type="radio" name="camera-facing" value="rear">Trasera</label>
                 </div>
               </fieldset>
-              <button id="start-camera" type="button">Cargar cámara</button>
+              <button id="start-camera" type="button">Abrir cámara</button>
             </div>
             <div id="camera-frame-slot" hidden></div>
           </div>
         </section>
-        <section class="panel chat" aria-labelledby="chat-title">
+        <section class="panel chat" aria-label="Chat de Kick">
           <div class="stage">
-            <div id="chat-example" class="chat-example">
-              <span class="mono">Mensajes de muestra</span>
-              <p><strong>mica</strong> ¡Buenas! Se ve bien 👋</p>
-              <p><strong>nico</strong> Se escucha clarito.</p>
+            <div id="chat-idle" class="chat-idle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a7.5 7.5 0 0 1-7.5 7.5H9l-5 2 1.5-5A7.5 7.5 0 0 1 11 4h2.5a7.5 7.5 0 0 1 7.5 7.5Z"/><path d="M9 11.5h6"/></svg>
+              <span>Chat de Kick</span>
             </div>
-            <iframe id="chat-frame" title="Página de chat del streamer" sandbox="allow-scripts allow-same-origin" allow="camera 'none'; microphone 'none'; autoplay 'none'" referrerpolicy="no-referrer" hidden></iframe>
+            <iframe id="chat-frame" title="Chat de Kick" sandbox="allow-scripts allow-same-origin" allow="camera 'none'; microphone 'none'; autoplay 'none'" referrerpolicy="no-referrer" hidden></iframe>
             <div id="alert-layer" class="alert-layer" hidden></div>
           </div>
-          <div class="panel-head">
-            <h2 id="chat-title">Chat de Kick</h2>
-            <span id="chat-mode" class="chip mono">Ejemplo</span>
-          </div>
-          <div class="panel-foot">
-            <form id="chat-form">
-              <label for="chat-channel">Canal de Kick</label>
-              <div class="url-row">
-                <input id="chat-channel" type="text" placeholder="Ej. example" required autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="chat-feedback">
-                <button type="submit" class="secondary">Cargar chat</button>
-              </div>
-              <p class="help" id="chat-feedback" role="status">Escribí el nombre del canal para abrir su chat.</p>
-            </form>
-          </div>
-          <details class="alerts-settings">
-            <summary>Alertas de Kick <span id="alerts-status"></span></summary>
-            <div class="alerts-body">
-              <p class="help">Mirá follows, subs, subs regaladas y KICKs sobre el chat, según las alertas que tengas activadas.</p>
-              <form id="alerts-form" autocomplete="off">
-                <label for="alerts-provider">Servicio de alertas</label>
-                <select id="alerts-provider">
-                  <option value="streamelements">StreamElements</option>
-                  <option value="streamlabs">Streamlabs</option>
-                </select>
-                <p id="alerts-instructions" class="help">En Mis overlays, copiá la URL de un overlay que tenga solo el AlertBox.</p>
-                <label for="alerts-url">Enlace privado del widget</label>
-                <input id="alerts-url" type="password" required autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Pegá el enlace del widget" aria-describedby="alerts-instructions alerts-privacy">
-                <p id="alerts-privacy" class="help">El panel usa el enlace en esta pestaña y no lo guarda.</p>
-                <fieldset id="alerts-size" class="alerts-size">
-                  <legend>Resolución del overlay</legend>
-                  <label>Ancho <input id="alerts-width" type="number" value="1920" min="240" max="4096" step="1" required></label>
-                  <label>Alto <input id="alerts-height" type="number" value="1080" min="120" max="4096" step="1" required></label>
-                </fieldset>
-                <div class="alerts-buttons">
-                  <button type="submit" class="secondary">Cargar alertas</button>
-                  <button id="alerts-stop" type="button" class="secondary" hidden>Quitar alertas</button>
-                </div>
-              </form>
-              <p id="alerts-feedback" class="help" role="status"></p>
+          <form id="chat-form">
+            <label class="screen-reader" for="chat-channel">Canal de Kick</label>
+            <div class="url-row chat-row">
+              <input id="chat-channel" type="text" placeholder="Canal de Kick" required autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="chat-feedback">
+              <button type="submit" class="secondary" aria-label="Abrir chat">Abrir</button>
+              <button id="chat-history" type="button" class="secondary" aria-controls="chat-frame" aria-pressed="false" hidden>Historial</button>
             </div>
-          </details>
+            <p class="help" id="chat-feedback" role="status"></p>
+          </form>
         </section>
       </div>
-      <section class="panel obs" aria-labelledby="obs-title">
-        <div>
-          <h2 id="obs-title">03 · Recibir en OBS</h2>
-          <p>Pegá este enlace en <strong>Fuentes → + → Navegador</strong>. Activá <strong>Controlar audio mediante OBS</strong>.</p>
-        </div>
-        <div>
-          <label for="obs-url" class="screen-reader">Enlace privado para la fuente de OBS</label>
-          <div class="url-row">
-            <input id="obs-url" type="text" readonly spellcheck="false">
-            <button id="copy-obs" type="button">Copiar</button>
+      <div class="utilities">
+        <details class="panel alerts-settings">
+          <summary>Alertas <span id="alerts-status"></span></summary>
+          <form id="alerts-form" autocomplete="off">
+            <label class="screen-reader" for="alerts-url">Enlace privado de alertas</label>
+            <div class="url-row">
+              <input id="alerts-url" type="password" required autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Enlace de alertas" aria-describedby="alerts-feedback">
+              <button type="submit">Conectar</button>
+            </div>
+            <button id="alerts-stop" type="button" class="secondary" hidden>Desconectar</button>
+          </form>
+          <details id="alerts-size" class="alerts-size" hidden>
+            <summary>Tamaño del overlay</summary>
+            <div class="dimensions">
+              <label>Ancho <input id="alerts-width" type="number" value="1920" min="240" max="4096" step="1" required></label>
+              <label>Alto <input id="alerts-height" type="number" value="1080" min="120" max="4096" step="1" required></label>
+            </div>
+          </details>
+          <p id="alerts-feedback" class="help" role="status"></p>
+        </details>
+        <section class="panel obs" aria-labelledby="obs-title">
+          <div class="obs-row">
+            <h2 id="obs-title">OBS</h2>
+            <button id="copy-obs" type="button">Copiar enlace</button>
           </div>
-          <p id="obs-feedback" role="status">Este enlace corresponde a la sesión de este panel.</p>
-        </div>
-      </section>
-      <noscript>Activá JavaScript para preparar la cámara, el chat y el enlace de OBS.</noscript>
+          <label for="obs-url" class="screen-reader">Enlace privado para OBS</label>
+          <input id="obs-url" type="text" readonly spellcheck="false" hidden>
+          <p id="obs-feedback" class="help" role="status"></p>
+        </section>
+      </div>
+      <noscript>Activá JavaScript.</noscript>
     </main>
   </div>
   <script>
@@ -238,6 +223,7 @@
     const cameraHelp = get('camera-help');
     let cameraSwitchTimeout;
     let cameraSwitchId = 0;
+    let cameraSwitchTarget;
 
     // Runs inside VDO.Ninja. Its capture code gives facingMode priority over the device picker.
     async function switchVdoFacing(facing, requestId) {
@@ -277,13 +263,20 @@
       cameraButtons.forEach(button => { button.disabled = disabled; });
     }
 
+    function markCamera(facing) {
+      cameraButtons.forEach(button => {
+        button.setAttribute('aria-pressed', String(button.dataset.facing === facing));
+      });
+    }
+
     get('start-camera').addEventListener('click', () => {
       const frame = document.createElement('iframe');
       frame.title = 'Cámara y micrófono de VDO.Ninja';
       frame.allow = 'camera https://vdo.ninja; microphone https://vdo.ninja; autoplay https://vdo.ninja';
       frame.referrerPolicy = 'no-referrer';
       const url = new URL(cameraUrl);
-      url.searchParams.set('facing', cameraEmpty.querySelector('input[name="camera-facing"]:checked').value);
+      const facing = cameraEmpty.querySelector('input[name="camera-facing"]:checked').value;
+      url.searchParams.set('facing', facing);
       if (location.origin !== 'null') url.searchParams.set('iframetarget', location.origin);
       frame.src = url.href;
       frame.addEventListener('load', () => {
@@ -293,7 +286,8 @@
       cameraSlot.hidden = false;
       cameraEmpty.hidden = true;
       cameraActions.hidden = false;
-      cameraHelp.textContent = 'Habilitá la cámara y el micrófono en VDO.Ninja.';
+      markCamera(facing === 'rear' ? 'environment' : 'user');
+      cameraHelp.textContent = '';
     });
 
     cameraButtons.forEach(button => {
@@ -302,12 +296,13 @@
         if (!cameraWindow || button.disabled) return;
         const facing = button.dataset.facing === 'environment' ? 'environment' : 'user';
         const requestId = ++cameraSwitchId;
+        cameraSwitchTarget = facing;
         disableCameraButtons(true);
         cameraHelp.textContent = 'Cambiando cámara…';
         cameraSwitchTimeout = setTimeout(() => {
           cameraSwitchTimeout = undefined;
           disableCameraButtons(false);
-          cameraHelp.textContent = 'El cambio tardó más de lo esperado. Revisá la vista previa.';
+          cameraHelp.textContent = 'Revisá la vista previa.';
         }, 6500);
         cameraWindow.postMessage({
           function: 'eval',
@@ -321,16 +316,19 @@
           event.source !== cameraSlot.firstElementChild?.contentWindow ||
           event.data?.requestId !== cameraSwitchId) return;
       const messages = {
-        switched: 'Cámara cambiada.',
-        requested: 'Revisá la cámara en la vista previa.',
+        switched: '',
+        requested: 'Revisá la vista previa.',
         inactive: 'Primero iniciá la cámara en VDO.Ninja.',
-        unavailable: 'No se pudo confirmar el cambio. Revisá la vista previa.'
+        unavailable: 'No se pudo cambiar la cámara.'
       };
       const status = event.data?.panelCameraSwitch;
       if (!Object.hasOwn(messages, status)) return;
       clearTimeout(cameraSwitchTimeout);
       cameraSwitchTimeout = undefined;
       disableCameraButtons(false);
+      if (status === 'switched' || status === 'requested') {
+        markCamera(cameraSwitchTarget);
+      }
       cameraHelp.textContent = messages[status];
     });
 
@@ -368,12 +366,25 @@
       hideBots: 'false',
       hideCommands: 'false',
       deletedMessages: 'hide',
-      fade: '20',
+      fade: '0',
       donations: 'true',
       rewards: 'false',
       overlay: 'true',
       background: '#0b0e0fff'
     }).toString();
+
+    const chatFrame = get('chat-frame');
+    const chatHistory = get('chat-history');
+    let activeChannel = '';
+    let showingHistory = false;
+
+    function showChat() {
+      chatUrl.searchParams.set('channel', activeChannel);
+      chatFrame.src = showingHistory ? 'https://kick.com/popout/' + encodeURIComponent(activeChannel) + '/chat' : chatUrl.href;
+      chatFrame.title = showingHistory ? 'Historial y chat de Kick' : 'Chat de Kick';
+      chatHistory.setAttribute('aria-pressed', String(showingHistory));
+      chatHistory.textContent = showingHistory ? 'Compacto' : 'Historial';
+    }
 
     get('chat-form').addEventListener('submit', (event) => {
       event.preventDefault();
@@ -381,46 +392,60 @@
       const feedback = get('chat-feedback');
       const channel = input.value.trim().replace(/^@/, '').toLowerCase();
       if (!/^[a-z0-9_-]+$/.test(channel)) {
-        feedback.textContent = 'Escribí solo el nombre del canal, por ejemplo example.';
+        feedback.textContent = 'Escribí solo el nombre del canal.';
         input.focus();
         return;
       }
-      chatUrl.searchParams.set('channel', channel);
-      const frame = get('chat-frame');
-      frame.src = chatUrl.href;
-      frame.hidden = false;
-      get('chat-example').hidden = true;
-      get('chat-mode').textContent = 'Holy Chat';
-      feedback.textContent = 'Canal seleccionado: ' + channel;
+      if (channel !== activeChannel) {
+        activeChannel = channel;
+        showChat();
+      }
+      chatFrame.hidden = false;
+      chatHistory.hidden = false;
+      get('chat-idle').hidden = true;
+      input.value = channel;
+      feedback.textContent = '';
     });
 
-    const alertProviders = {
-      streamelements: {
+    chatHistory.addEventListener('click', () => {
+      if (!activeChannel) return;
+      showingHistory = !showingHistory;
+      showChat();
+    });
+
+    const alertProviders = [
+      {
         name: 'StreamElements',
         origin: 'https://streamelements.com',
-        path: /^\/overlay\/[^/]+\/[^/]+\/?$/,
-        instructions: 'En Mis overlays, copiá la URL de un overlay que tenga solo el AlertBox.',
-        test: 'Probá una alerta con Emulate en el editor de StreamElements.'
+        matches: url => /^\/overlay\/[^/]+\/[^/]+\/?$/.test(url.pathname),
+        fixedSize: true
       },
-      streamlabs: {
+      {
         name: 'Streamlabs',
         origin: 'https://streamlabs.com',
-        path: /^\/(?:alert-box\/v3|widgets\/alert-box)\/[^/]+\/?$/,
-        instructions: 'En Alert Box, copiá el enlace que dice Widget URL.',
-        test: 'Probá una alerta desde el menú de pruebas de Streamlabs.'
+        matches: url => /^\/(?:alert-box\/v3|widgets\/alert-box)\/[^/]+\/?$/.test(url.pathname)
+      },
+      {
+        name: 'BotRix',
+        origin: 'https://botrix.live',
+        matches: url => /^\/alerts\/?$/.test(url.pathname) && Boolean(url.searchParams.get('bid')?.trim())
       }
-    };
+    ];
     const alertLayer = get('alert-layer');
-    const alertProvider = get('alerts-provider');
     const alertInput = get('alerts-url');
     const alertFeedback = get('alerts-feedback');
     const alertStop = get('alerts-stop');
+    const alertSize = get('alerts-size');
+    const alertWidth = get('alerts-width');
+    const alertHeight = get('alerts-height');
     let activeAlert = null;
 
-    function widgetUrl(value, provider) {
+    function parseAlertLink(value) {
       try {
         const url = new URL(value.trim());
-        if (url.origin === provider.origin && !url.username && !url.password && provider.path.test(url.pathname)) return url;
+        if (url.protocol !== 'https:' || url.username || url.password) return null;
+        const provider = alertProviders.find(item => item.origin === url.origin && item.matches(url));
+        if (provider) return { url, provider };
       } catch {
         // An incomplete or malformed link is handled by the form.
       }
@@ -428,65 +453,57 @@
     }
 
     function resizeAlert() {
-      if (!activeAlert || !activeAlert.width) return;
-      const { frame, width, height } = activeAlert;
+      if (!activeAlert?.provider.fixedSize) return;
+      const { frame } = activeAlert;
+      const width = alertWidth.validity.valid ? alertWidth.valueAsNumber : 1920;
+      const height = alertHeight.validity.valid ? alertHeight.valueAsNumber : 1080;
       const scale = Math.min(alertLayer.clientWidth / width, alertLayer.clientHeight / height);
+      frame.style.width = width + 'px';
+      frame.style.height = height + 'px';
       frame.style.left = (alertLayer.clientWidth - width * scale) / 2 + 'px';
       frame.style.transform = 'scale(' + scale + ')';
     }
 
     new ResizeObserver(resizeAlert).observe(alertLayer.parentElement);
-
-    function updateAlertForm() {
-      const isOverlay = alertProvider.value === 'streamelements';
-      const size = get('alerts-size');
-      size.hidden = !isOverlay;
-      size.disabled = !isOverlay;
-      get('alerts-instructions').textContent = alertProviders[alertProvider.value].instructions;
-    }
-    alertProvider.addEventListener('change', updateAlertForm);
-    updateAlertForm();
+    alertWidth.addEventListener('change', resizeAlert);
+    alertHeight.addEventListener('change', resizeAlert);
 
     get('alerts-form').addEventListener('submit', (event) => {
       event.preventDefault();
-      const provider = alertProviders[alertProvider.value];
-      const url = widgetUrl(alertInput.value, provider);
-      if (!url) {
-        alertFeedback.textContent = 'Pegá el enlace del widget de ' + provider.name + '. El enlace al editor o al canal no sirve.';
+      const link = parseAlertLink(alertInput.value);
+      if (!link) {
+        alertFeedback.textContent = 'Pegá el enlace de alertas de StreamElements, Streamlabs o BotRix.';
         alertInput.focus();
         return;
       }
+      const { url, provider } = link;
       const frame = document.createElement('iframe');
       frame.title = 'Alertas de ' + provider.name;
       frame.tabIndex = -1;
       frame.setAttribute('sandbox', 'allow-scripts allow-same-origin');
-      frame.allow = "camera 'none'; microphone 'none'; autoplay 'none'";
+      frame.allow = "camera 'none'; microphone 'none'; autoplay " + provider.origin;
       frame.referrerPolicy = 'no-referrer';
-      const isOverlay = alertProvider.value === 'streamelements';
-      const width = isOverlay ? get('alerts-width').valueAsNumber : 0;
-      const height = isOverlay ? get('alerts-height').valueAsNumber : 0;
-      if (isOverlay) {
-        frame.style.width = width + 'px';
-        frame.style.height = height + 'px';
-      }
       frame.src = url.href;
       alertLayer.replaceChildren(frame);
-      activeAlert = { frame, width, height };
+      activeAlert = { frame, provider };
       alertLayer.hidden = false;
+      alertSize.hidden = !provider.fixedSize;
       resizeAlert();
       alertInput.value = '';
       alertStop.hidden = false;
       get('alerts-status').textContent = '· ' + provider.name;
-      alertFeedback.textContent = provider.test + ' Debería aparecer sobre el chat.';
+      alertFeedback.textContent = 'Probá una alerta desde ' + provider.name + '.';
     });
 
     alertStop.addEventListener('click', () => {
       activeAlert = null;
       alertLayer.replaceChildren();
       alertLayer.hidden = true;
+      alertSize.hidden = true;
+      alertSize.open = false;
       alertStop.hidden = true;
       get('alerts-status').textContent = '';
-      alertFeedback.textContent = 'Alertas quitadas.';
+      alertFeedback.textContent = '';
       alertInput.focus();
     });
 
@@ -494,8 +511,10 @@
       const feedback = get('obs-feedback');
       try {
         await navigator.clipboard.writeText(obsUrl.value);
-        feedback.textContent = 'Enlace copiado.';
+        obsUrl.hidden = true;
+        feedback.textContent = 'Copiado.';
       } catch {
+        obsUrl.hidden = false;
         obsUrl.focus();
         obsUrl.select();
         feedback.textContent = 'Enlace seleccionado para copiar.';
