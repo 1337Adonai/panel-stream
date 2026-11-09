@@ -61,7 +61,7 @@
     .chat .stage:has(#chat-idle:not([hidden])):has(#alert-layer[hidden]) { height: 88px; }
     .chat-idle { gap: 5px; color: var(--muted); font-size: .79rem; background: var(--well); }
     #chat-form { padding: 2px 4px; }
-    #chat-connected { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; padding: 1px 4px; }
+    #chat-connected { display: flex; align-items: center; gap: 5px; padding: 1px 4px; }
     #chat-connected button { padding-inline: 8px; font-size: .76rem; }
     #chat-connected-channel { flex: 1 1 64px; min-width: 0; padding-inline: 4px; font-size: .82rem; font-weight: 680; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .url-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 5px; }
@@ -94,6 +94,10 @@
     .obs-row { display: flex; align-items: center; justify-content: space-between; }
     .obs h2 { margin: 0; font-size: .86rem; }
     .screen-reader { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    @media (max-width: 600px) {
+      #camera-actions { column-gap: 4px; }
+      #camera-actions button { padding-inline: 7px; }
+    }
     @media (min-width: 720px), (orientation: landscape) and (min-width: 520px) and (max-height: 600px) {
       .workspace { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); align-items: stretch; }
       .chat { display: grid; grid-template-rows: minmax(0, 1fr); }
