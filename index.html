@@ -192,6 +192,27 @@
     const switchCamera = get('switch-camera');
     const stopCamera = get('stop-camera');
     const cameraHelp = get('camera-help');
+    let cameraSwitchTimeout;
+
+    // VDO.Ninja's iframe API runs this fixed command using its own camera control.
+    const cycleCameraCommand = {
+      function: 'eval',
+      value: `(() => {
+        let status = 'unavailable';
+        if (typeof cycleCameras === 'function') {
+          const active = session.streamSrc?.getVideoTracks().some(track => track.readyState === 'live');
+          if (!active) {
+            status = 'inactive';
+          } else if (document.getElementById('videoSource3')?.options.length > 1) {
+            cycleCameras();
+            status = 'requested';
+          } else {
+            status = 'single';
+          }
+        }
+        parent.postMessage({ panelCameraSwitch: status }, session.iframetarget);
+      })();`
+    };
 
     get('start-camera').addEventListener('click', () => {
       const frame = document.createElement('iframe');
@@ -200,6 +221,7 @@
       frame.referrerPolicy = 'no-referrer';
       const url = new URL(cameraUrl);
       url.searchParams.set('facing', cameraEmpty.querySelector('input[name="camera-facing"]:checked').value);
+      if (location.origin !== 'null') url.searchParams.set('iframetarget', location.origin);
       frame.src = url.href;
       frame.addEventListener('load', () => {
         if (cameraSlot.firstElementChild === frame) switchCamera.disabled = false;
@@ -213,11 +235,38 @@
     });
 
     switchCamera.addEventListener('click', () => {
-      cameraSlot.firstElementChild?.contentWindow?.postMessage({ toggleSettings: true }, vdoOrigin);
-      cameraHelp.textContent = 'En los ajustes de VDO.Ninja, elegí la otra cámara en Video.';
+      const cameraWindow = cameraSlot.firstElementChild?.contentWindow;
+      if (!cameraWindow || switchCamera.disabled) return;
+      switchCamera.disabled = true;
+      cameraHelp.textContent = 'Pidiendo el cambio de cámara…';
+      cameraSwitchTimeout = setTimeout(() => {
+        cameraSwitchTimeout = undefined;
+        switchCamera.disabled = false;
+        cameraHelp.textContent = 'VDO.Ninja no respondió. Probá el selector de cámara dentro del video.';
+      }, 2500);
+      cameraWindow.postMessage(cycleCameraCommand, vdoOrigin);
+    });
+
+    window.addEventListener('message', (event) => {
+      if (!cameraSwitchTimeout || event.origin !== vdoOrigin ||
+          event.source !== cameraSlot.firstElementChild?.contentWindow) return;
+      const messages = {
+        requested: 'Cambio solicitado. Si hay más lentes, tocá de nuevo para recorrerlas.',
+        inactive: 'Primero iniciá la cámara en VDO.Ninja.',
+        single: 'VDO.Ninja solo encontró una cámara disponible.',
+        unavailable: 'Usá el selector de cámara dentro de VDO.Ninja.'
+      };
+      const status = event.data?.panelCameraSwitch;
+      if (!Object.hasOwn(messages, status)) return;
+      clearTimeout(cameraSwitchTimeout);
+      cameraSwitchTimeout = undefined;
+      switchCamera.disabled = false;
+      cameraHelp.textContent = messages[status];
     });
 
     stopCamera.addEventListener('click', () => {
+      clearTimeout(cameraSwitchTimeout);
+      cameraSwitchTimeout = undefined;
       cameraSlot.replaceChildren();
       cameraSlot.hidden = true;
       cameraEmpty.hidden = false;
