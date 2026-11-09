@@ -80,7 +80,8 @@
     .help { color: var(--muted); font-size: .77rem; }
     #chat-feedback { padding: 3px 4px 0; }
     .alert-layer { position: absolute; inset: 0; z-index: 1; overflow: hidden; pointer-events: none; }
-    .alert-layer iframe { position: absolute; top: 0; left: 0; transform-origin: top left; }
+    .alert-layer iframe { position: absolute; top: 0; left: 0; transform-origin: top left; background: transparent; }
+    .alert-layer.audio-only { opacity: 0; }
     .utilities { display: grid; gap: 6px; margin-top: 6px; }
     .alerts-settings { padding-inline: 10px; }
     .alerts-settings > summary { display: flex; align-items: center; gap: 6px; min-height: 44px; cursor: pointer; font-size: .85rem; font-weight: 750; }
@@ -88,6 +89,8 @@
     .alerts-settings[open] > summary::after { content: '−'; }
     #alerts-status { color: var(--accent); font-size: .74rem; font-weight: 550; }
     #alerts-form { display: grid; gap: 5px; padding-bottom: 8px; }
+    .alerts-audio-only { display: flex; align-items: center; gap: 6px; min-height: 36px; font-size: .8rem; }
+    .alerts-audio-only input { width: 16px; height: 16px; min-height: 0; accent-color: var(--accent); }
     #alerts-feedback { padding: 0 0 8px; }
     .alerts-size { margin-bottom: 8px; }
     .alerts-size summary { min-height: 44px; align-content: center; color: var(--muted); cursor: pointer; font-size: .78rem; }
@@ -203,6 +206,7 @@
               <input id="alerts-url" type="password" required autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Enlace de alertas" aria-describedby="alerts-feedback">
               <button type="submit">Conectar</button>
             </div>
+            <label id="alerts-audio-option" class="alerts-audio-only" hidden><input id="alerts-audio-only" type="checkbox"> Solo sonido</label>
             <button id="alerts-stop" type="button" class="secondary" hidden>Desconectar</button>
           </form>
           <details id="alerts-size" class="alerts-size" hidden>
@@ -546,6 +550,7 @@
       {
         name: 'BotRix',
         origin: 'https://botrix.live',
+        colorScheme: 'light',
         matches: url => /^\/alerts\/?$/.test(url.pathname) && Boolean(url.searchParams.get('bid')?.trim())
       }
     ];
@@ -553,6 +558,8 @@
     const alertInput = get('alerts-url');
     const alertFeedback = get('alerts-feedback');
     const alertStop = get('alerts-stop');
+    const alertAudioOption = get('alerts-audio-option');
+    const alertAudioOnly = get('alerts-audio-only');
     const alertSize = get('alerts-size');
     const alertWidth = get('alerts-width');
     const alertHeight = get('alerts-height');
@@ -586,6 +593,9 @@
     new ResizeObserver(resizeAlert).observe(alertLayer.parentElement);
     alertWidth.addEventListener('change', resizeAlert);
     alertHeight.addEventListener('change', resizeAlert);
+    alertAudioOnly.addEventListener('change', () => {
+      alertLayer.classList.toggle('audio-only', alertAudioOnly.checked);
+    });
 
     get('alerts-form').addEventListener('submit', (event) => {
       event.preventDefault();
@@ -598,6 +608,7 @@
       const { url, provider } = link;
       const frame = document.createElement('iframe');
       frame.title = 'Alertas de ' + provider.name;
+      if (provider.colorScheme) frame.style.colorScheme = provider.colorScheme;
       frame.tabIndex = -1;
       frame.setAttribute('sandbox', 'allow-scripts allow-same-origin');
       frame.allow = "camera 'none'; microphone 'none'; autoplay " + provider.origin;
@@ -610,6 +621,7 @@
       resizeAlert();
       alertInput.value = '';
       alertStop.hidden = false;
+      alertAudioOption.hidden = false;
       get('alerts-status').textContent = '· ' + provider.name;
       alertFeedback.textContent = 'Probá una alerta desde ' + provider.name + ' para verla sobre la cámara.';
     });
@@ -621,6 +633,9 @@
       alertSize.hidden = true;
       alertSize.open = false;
       alertStop.hidden = true;
+      alertAudioOption.hidden = true;
+      alertAudioOnly.checked = false;
+      alertLayer.classList.remove('audio-only');
       get('alerts-status').textContent = '';
       alertFeedback.textContent = '';
       alertInput.focus();
