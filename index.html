@@ -540,7 +540,7 @@
         name: 'StreamElements',
         origin: 'https://streamelements.com',
         matches: url => /^\/overlay\/[^/]+\/[^/]+\/?$/.test(url.pathname),
-        fixedSize: true
+        defaultSize: [1920, 1080]
       },
       {
         name: 'Streamlabs',
@@ -551,6 +551,7 @@
         name: 'BotRix',
         origin: 'https://botrix.live',
         colorScheme: 'light',
+        defaultSize: [800, 600],
         matches: url => /^\/alerts\/?$/.test(url.pathname) && Boolean(url.searchParams.get('bid')?.trim())
       }
     ];
@@ -578,10 +579,11 @@
     }
 
     function resizeAlert() {
-      if (!activeAlert?.provider.fixedSize) return;
-      const { frame } = activeAlert;
-      const width = alertWidth.validity.valid ? alertWidth.valueAsNumber : 1920;
-      const height = alertHeight.validity.valid ? alertHeight.valueAsNumber : 1080;
+      if (!activeAlert?.provider.defaultSize) return;
+      const { frame, provider } = activeAlert;
+      const [defaultWidth, defaultHeight] = provider.defaultSize;
+      const width = alertWidth.validity.valid ? alertWidth.valueAsNumber : defaultWidth;
+      const height = alertHeight.validity.valid ? alertHeight.valueAsNumber : defaultHeight;
       const scale = Math.min(alertLayer.clientWidth / width, alertLayer.clientHeight / height);
       frame.style.width = width + 'px';
       frame.style.height = height + 'px';
@@ -617,7 +619,13 @@
       alertLayer.replaceChildren(frame);
       activeAlert = { frame, provider };
       alertLayer.hidden = false;
-      alertSize.hidden = !provider.fixedSize;
+      alertSize.hidden = !provider.defaultSize;
+      if (provider.defaultSize && alertSize.dataset.provider !== provider.name) {
+        const [width, height] = provider.defaultSize;
+        alertWidth.value = width;
+        alertHeight.value = height;
+        alertSize.dataset.provider = provider.name;
+      }
       resizeAlert();
       alertInput.value = '';
       alertStop.hidden = false;
