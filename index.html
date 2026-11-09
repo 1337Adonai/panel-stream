@@ -192,6 +192,12 @@
   </div>
   <script>
     const get = (id) => document.getElementById(id);
+    const landscapePanel = matchMedia('(orientation: landscape) and (min-width: 520px) and (max-height: 600px)');
+
+    function showLandscapePanel() {
+      if (landscapePanel.matches) window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+
     const vdoOrigin = 'https://vdo.ninja';
     const hash = new URLSearchParams(location.hash.slice(1));
     const savedSession = hash.get('sesion') ?? '';
@@ -288,6 +294,7 @@
       cameraActions.hidden = false;
       markCamera(facing === 'rear' ? 'environment' : 'user');
       cameraHelp.textContent = '';
+      showLandscapePanel();
     });
 
     cameraButtons.forEach(button => {
@@ -340,7 +347,8 @@
       cameraEmpty.hidden = false;
       cameraActions.hidden = true;
       disableCameraButtons(true);
-      get('start-camera').focus();
+      get('start-camera').focus({ preventScroll: landscapePanel.matches });
+      showLandscapePanel();
     });
 
     const chatUrl = new URL('https://yuuzito.github.io/Holy-chat-overlay/');
@@ -405,12 +413,15 @@
       get('chat-idle').hidden = true;
       input.value = channel;
       feedback.textContent = '';
+      if (landscapePanel.matches) input.blur();
+      showLandscapePanel();
     });
 
     chatHistory.addEventListener('click', () => {
       if (!activeChannel) return;
       showingHistory = !showingHistory;
       showChat();
+      showLandscapePanel();
     });
 
     const alertProviders = [
