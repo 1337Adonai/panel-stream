@@ -93,11 +93,11 @@
       .wrap {
         width: min(960px, calc(100% - max(16px, env(safe-area-inset-left) + env(safe-area-inset-right))));
       }
-      header { padding-block: 6px; }
+      header { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); }
       .workspace {
         grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
         align-items: stretch;
-        height: max(210px, calc(100dvh - 45px));
+        height: max(210px, 100dvh);
       }
       .workspace > .panel { display: grid; grid-template-rows: minmax(0, 1fr) auto; }
       .camera .stage, .chat .stage, .chat .stage:has(#chat-idle:not([hidden])):has(#alert-layer[hidden]) { grid-row: 1; height: auto; min-height: 0; }
