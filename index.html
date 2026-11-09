@@ -29,12 +29,13 @@
     p { margin: 0; }
     .intro p, .help { color: var(--muted); }
     .notice { background: #364231; color: #eaf4e2; padding: 9px 13px; border-radius: 8px; margin-bottom: 13px; font-size: .83rem; }
-    .workspace { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 12px; }
+    .workspace { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); align-items: start; gap: 12px; }
     .panel { min-width: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 13px; overflow: hidden; }
     .panel-head { min-height: 55px; display: flex; justify-content: space-between; gap: 8px; align-items: center; padding: 8px 12px; }
     .panel-head h2 { margin: 0; font-size: 1rem; }
     .chip { color: var(--muted); font-size: .69rem; }
     .stage { background: var(--field); border-block: 1px solid var(--line); height: 340px; display: grid; }
+    .chat .stage { height: 500px; }
     .empty { display: grid; justify-items: center; align-content: center; gap: 8px; padding: 18px; text-align: center; }
     .empty svg { stroke: var(--accent); fill: none; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; width: 44px; height: 44px; margin-bottom: 3px; }
     .empty p { font-size: .83rem; color: var(--muted); max-width: 30ch; }
@@ -72,7 +73,7 @@
       .wrap { width: calc(100% - 24px); }
       .workspace, .obs { grid-template-columns: 1fr; }
       .stage { height: clamp(230px, 42svh, 320px); }
-      .chat .stage { height: clamp(135px, 28svh, 225px); }
+      .chat .stage { height: clamp(300px, 55svh, 560px); }
       .empty { padding: 12px; }
       .empty svg { width: 36px; height: 36px; }
       .intro { padding: 17px 0 12px; }
