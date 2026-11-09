@@ -201,9 +201,9 @@
         <details class="panel alerts-settings">
           <summary>Alertas <span id="alerts-status"></span></summary>
           <form id="alerts-form" autocomplete="off">
-            <label class="screen-reader" for="alerts-url">Enlace privado de alertas</label>
+            <label class="screen-reader" for="alerts-url">Enlace de alertas</label>
             <div class="url-row">
-              <input id="alerts-url" type="password" required autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Enlace de alertas" aria-describedby="alerts-feedback">
+              <input id="alerts-url" type="text" inputmode="url" required autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Enlace de alertas" aria-describedby="alerts-feedback">
               <button type="submit">Conectar</button>
             </div>
             <label id="alerts-audio-option" class="alerts-audio-only" hidden><input id="alerts-audio-only" type="checkbox"> Solo sonido</label>
@@ -620,7 +620,7 @@
         alertSize.dataset.provider = provider.name;
       }
       resizeAlert();
-      alertInput.value = '';
+      alertInput.value = url.href;
       alertStop.hidden = false;
       alertAudioOption.hidden = false;
       get('alerts-status').textContent = '· ' + provider.name;
@@ -655,6 +655,7 @@
       alertLayer.classList.remove('audio-only');
       get('alerts-status').textContent = '';
       alertFeedback.textContent = '';
+      alertInput.value = '';
       try {
         localStorage.removeItem(alertLinkKey);
       } catch {
