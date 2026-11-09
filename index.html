@@ -80,6 +80,7 @@
     .help { color: var(--muted); font-size: .77rem; }
     #chat-feedback { padding: 3px 4px 0; }
     .alert-layer { position: absolute; inset: 0; z-index: 1; overflow: hidden; pointer-events: none; }
+    .alert-layer[data-provider="Streamlabs"] { inset: 8px 12.5% 56px; }
     .alert-layer iframe { position: absolute; top: 0; left: 0; transform-origin: top left; background: transparent; }
     .alert-layer.audio-only { opacity: 0; }
     .utilities { display: grid; gap: 6px; margin-top: 6px; }
@@ -92,10 +93,6 @@
     .alerts-audio-only { display: flex; align-items: center; gap: 6px; min-height: 36px; font-size: .8rem; }
     .alerts-audio-only input { width: 16px; height: 16px; min-height: 0; accent-color: var(--accent); }
     #alerts-feedback { padding: 0 0 8px; }
-    .alerts-size { margin-bottom: 8px; }
-    .alerts-size summary { min-height: 44px; align-content: center; color: var(--muted); cursor: pointer; font-size: .78rem; }
-    .alerts-size .dimensions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; }
-    .alerts-size label { display: grid; gap: 3px; color: var(--muted); font-size: .76rem; }
     .obs { display: grid; gap: 5px; padding: 5px 5px 5px 10px; }
     .obs-row { display: flex; align-items: center; justify-content: space-between; }
     .obs h2 { margin: 0; font-size: .86rem; }
@@ -209,13 +206,6 @@
             <label id="alerts-audio-option" class="alerts-audio-only" hidden><input id="alerts-audio-only" type="checkbox"> Solo sonido</label>
             <button id="alerts-stop" type="button" class="secondary" hidden>Desconectar</button>
           </form>
-          <details id="alerts-size" class="alerts-size" hidden>
-            <summary>Tamaño del overlay</summary>
-            <div class="dimensions">
-              <label>Ancho <input id="alerts-width" type="number" value="1920" min="240" max="4096" step="1" required></label>
-              <label>Alto <input id="alerts-height" type="number" value="1080" min="120" max="4096" step="1" required></label>
-            </div>
-          </details>
           <p id="alerts-feedback" class="help" role="status"></p>
         </details>
         <section class="panel obs" aria-labelledby="obs-title">
@@ -541,20 +531,20 @@
         name: 'StreamElements',
         origin: 'https://streamelements.com',
         matches: url => /^\/overlay\/[^/]+\/[^/]+\/?$/.test(url.pathname),
-        defaultSize: [1920, 1080]
+        size: [1920, 1080]
       },
       {
         name: 'Streamlabs',
         origin: 'https://streamlabs.com',
         colorScheme: 'light',
-        defaultSize: [800, 600],
+        size: [800, 600],
         matches: url => /^\/(?:alert-box\/v3|widgets\/alert-box)\/[^/]+\/?$/.test(url.pathname)
       },
       {
         name: 'BotRix',
         origin: 'https://botrix.live',
         colorScheme: 'light',
-        defaultSize: [800, 600],
+        size: [800, 600],
         matches: url => /^\/alerts\/?$/.test(url.pathname) && Boolean(url.searchParams.get('bid')?.trim())
       }
     ];
@@ -564,9 +554,6 @@
     const alertStop = get('alerts-stop');
     const alertAudioOption = get('alerts-audio-option');
     const alertAudioOnly = get('alerts-audio-only');
-    const alertSize = get('alerts-size');
-    const alertWidth = get('alerts-width');
-    const alertHeight = get('alerts-height');
     let activeAlert = null;
 
     function parseAlertLink(value) {
@@ -582,11 +569,9 @@
     }
 
     function resizeAlert() {
-      if (!activeAlert?.provider.defaultSize) return;
+      if (!activeAlert) return;
       const { frame, provider } = activeAlert;
-      const [defaultWidth, defaultHeight] = provider.defaultSize;
-      const width = alertWidth.validity.valid ? alertWidth.valueAsNumber : defaultWidth;
-      const height = alertHeight.validity.valid ? alertHeight.valueAsNumber : defaultHeight;
+      const [width, height] = provider.size;
       const scale = Math.min(alertLayer.clientWidth / width, alertLayer.clientHeight / height);
       frame.style.width = width + 'px';
       frame.style.height = height + 'px';
@@ -595,9 +580,7 @@
       frame.style.transform = 'scale(' + scale + ')';
     }
 
-    new ResizeObserver(resizeAlert).observe(alertLayer.parentElement);
-    alertWidth.addEventListener('change', resizeAlert);
-    alertHeight.addEventListener('change', resizeAlert);
+    new ResizeObserver(resizeAlert).observe(alertLayer);
     alertAudioOnly.addEventListener('change', () => {
       alertLayer.classList.toggle('audio-only', alertAudioOnly.checked);
     });
@@ -613,14 +596,8 @@
       frame.src = url.href;
       alertLayer.replaceChildren(frame);
       activeAlert = { frame, provider };
+      alertLayer.dataset.provider = provider.name;
       alertLayer.hidden = false;
-      alertSize.hidden = !provider.defaultSize;
-      if (provider.defaultSize && alertSize.dataset.provider !== provider.name) {
-        const [width, height] = provider.defaultSize;
-        alertWidth.value = width;
-        alertHeight.value = height;
-        alertSize.dataset.provider = provider.name;
-      }
       resizeAlert();
       alertInput.value = url.href;
       alertStop.hidden = false;
@@ -649,8 +626,6 @@
       activeAlert = null;
       alertLayer.replaceChildren();
       alertLayer.hidden = true;
-      alertSize.hidden = true;
-      alertSize.open = false;
       alertStop.hidden = true;
       alertAudioOption.hidden = true;
       alertAudioOnly.checked = false;
